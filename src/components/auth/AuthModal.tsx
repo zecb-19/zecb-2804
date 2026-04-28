@@ -57,7 +57,7 @@ export function AuthModal({ open, initialMode, onClose }: Props) {
   useEffect(() => {
     if (!success) return;
     onClose();
-    router.refresh();
+    router.push("/dashboard");
   }, [success, onClose, router]);
 
   useEffect(() => {

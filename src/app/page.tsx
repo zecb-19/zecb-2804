@@ -1,8 +1,12 @@
-import { getCurrentUser } from "@/lib/auth/dal";
+import { redirect } from "next/navigation";
+
 import { Landing } from "@/components/landing/Landing";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function Home() {
   const user = await getCurrentUser();
-  const navUser = user ? { email: user.email, name: user.name } : null;
-  return <Landing user={navUser} />;
+  if (user) {
+    redirect("/dashboard");
+  }
+  return <Landing user={null} />;
 }
