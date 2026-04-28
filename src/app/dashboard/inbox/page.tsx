@@ -1,17 +1,16 @@
-import { SectionStub } from "@/components/dashboard/SectionStub";
+import { getCurrentUser } from "@/lib/auth/dal";
+import {
+  countIdeasByStatus,
+  listIdeasForUser,
+} from "@/lib/ideas/queries";
+import { IdeaInboxView } from "@/components/dashboard/IdeaInboxView";
 
-export default function Page() {
-  return (
-    <SectionStub
-      title="Idea Inbox"
-      blurb="Validated MarketSignalReports surfaced by the Architect Agent, awaiting your decision before they become BuildSpec drafts."
-      icon="inbox"
-      bullets={[
-        "Approve, reject, or annotate each MarketSignalReport with positive-unit-economic estimates.",
-        "See the validation packet behind each opportunity — winning landing variant, top hooks, email-response themes.",
-        "Promote an approved idea straight into a Monitoring-SaaS BuildSpec draft (V1) — one click.",
-        "Reject reasoning is captured for Architect Agent feedback so future ideation tightens.",
-      ]}
-    />
-  );
+export default async function Page() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const [ideas, counts] = await Promise.all([
+    listIdeasForUser(user.id),
+    countIdeasByStatus(user.id),
+  ]);
+  return <IdeaInboxView ideas={ideas} counts={counts} />;
 }

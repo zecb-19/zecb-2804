@@ -1,6 +1,7 @@
 import "server-only";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const USD_TO_EUR = Number(process.env.ZECB_USD_TO_EUR) || 0.93;
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -15,8 +16,30 @@ export type OpenRouterCallOptions = {
   signal?: AbortSignal;
 };
 
+export type ChatUsage = {
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cost_usd: number;
+  cost_eur: number;
+};
+
+export type ChatResult = {
+  content: string;
+  usage: ChatUsage;
+  raw: unknown;
+};
+
 type OpenRouterResponse = {
+  model?: string;
   choices?: Array<{ message?: { content?: string } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    cost?: number;
+  };
   error?: { message?: string };
 };
 
@@ -26,10 +49,10 @@ function getKey(): string {
   return key;
 }
 
-export async function chat(
+export async function chatWithUsage(
   messages: ChatMessage[],
   opts: OpenRouterCallOptions = {},
-): Promise<string> {
+): Promise<ChatResult> {
   const model =
     opts.model ?? process.env.OPENROUTER_PRIMARY_MODEL ?? "anthropic/claude-sonnet-4.5";
 
@@ -47,6 +70,7 @@ export async function chat(
       temperature: opts.temperature,
       max_tokens: opts.max_tokens,
       response_format: opts.response_format,
+      usage: { include: true },
     }),
     signal: opts.signal,
   });
@@ -64,5 +88,24 @@ export async function chat(
   if (typeof content !== "string") {
     throw new Error("OpenRouter returned no content");
   }
-  return content;
+
+  const usd = json.usage?.cost ?? 0;
+  const usage: ChatUsage = {
+    model: json.model ?? model,
+    prompt_tokens: json.usage?.prompt_tokens ?? 0,
+    completion_tokens: json.usage?.completion_tokens ?? 0,
+    total_tokens: json.usage?.total_tokens ?? 0,
+    cost_usd: usd,
+    cost_eur: Number((usd * USD_TO_EUR).toFixed(6)),
+  };
+
+  return { content, usage, raw: json };
+}
+
+export async function chat(
+  messages: ChatMessage[],
+  opts: OpenRouterCallOptions = {},
+): Promise<string> {
+  const r = await chatWithUsage(messages, opts);
+  return r.content;
 }

@@ -38,9 +38,17 @@ type AlertKey = (typeof ALERT_PRIMITIVES)[number];
 type ChannelKey = (typeof NOTIFICATION_CHANNELS)[number];
 type IntegrationKey = (typeof INTEGRATIONS)[number];
 
-export function BuildSpecForm() {
+export function BuildSpecForm({
+  initialSpec,
+  fromLabel,
+}: {
+  initialSpec?: BuildSpec;
+  fromLabel?: string;
+} = {}) {
   const router = useRouter();
-  const [spec, setSpec] = useState<BuildSpec>(() => structuredClone(DEFAULT_SPEC));
+  const [spec, setSpec] = useState<BuildSpec>(() =>
+    structuredClone(initialSpec ?? DEFAULT_SPEC),
+  );
   const [state, action, pending] = useActionState(createBuildAction, initialState);
 
   // Auto-derive brand name from product name on first edit.
@@ -188,6 +196,21 @@ export function BuildSpecForm() {
       className="space-y-6"
     >
       <input type="hidden" name="payload" value={payload} readOnly />
+
+      {fromLabel ? (
+        <motion.div
+          variants={fadeUp}
+          className="px-4 py-3 rounded-lg bg-secondary-fixed/60 text-secondary text-body-md flex items-center gap-2"
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 20 }}
+          >
+            auto_awesome
+          </span>
+          Pre-filled from idea: <span className="font-semibold">{fromLabel}</span>
+        </motion.div>
+      ) : null}
 
       {failure?.message ? (
         <motion.div

@@ -155,6 +155,52 @@ export function ensureSchema(): Promise<void> {
     await pool.query(
       `CREATE INDEX IF NOT EXISTS agent_runs_recent_idx ON agent_runs (created_at DESC);`,
     );
+    // Attribute Architect-Agent runs (no product yet) to the operator
+    // who triggered them, so the Audit Trail viewer can scope by user.
+    await pool.query(
+      `ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS owner_user_id UUID;`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS agent_runs_owner_idx ON agent_runs (owner_user_id, created_at DESC);`,
+    );
+
+    // --- market_signal_reports (Architect Agent output) ---------------
+    // PRD §17.1 U-O-01 + §19 step 3: validated opportunities awaiting
+    // operator approval, then promotable to a BuildSpec draft.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS market_signal_reports (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_user_id UUID NOT NULL,
+        generation_request_id UUID NOT NULL,
+        vertical TEXT NOT NULL,
+        persona JSONB NOT NULL DEFAULT '{}'::jsonb,
+        opportunity TEXT NOT NULL,
+        pain_statement TEXT NOT NULL,
+        core_promise TEXT NOT NULL,
+        mechanism TEXT,
+        suggested_slug TEXT,
+        suggested_data_sources JSONB NOT NULL DEFAULT '[]'::jsonb,
+        suggested_alert_primitives JSONB NOT NULL DEFAULT '[]'::jsonb,
+        suggested_notification_channels JSONB NOT NULL DEFAULT '[]'::jsonb,
+        suggested_pricing_tiers JSONB NOT NULL DEFAULT '[]'::jsonb,
+        unit_economics JSONB NOT NULL DEFAULT '{}'::jsonb,
+        tam_estimate TEXT,
+        reasoning TEXT,
+        llm_model TEXT,
+        cost_eur NUMERIC(10,4) NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'pending',
+        reviewer_note TEXT,
+        reviewed_at TIMESTAMPTZ,
+        promoted_to_product_id UUID,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS msr_owner_idx ON market_signal_reports (owner_user_id, created_at DESC);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS msr_status_idx ON market_signal_reports (status);`,
+    );
   })().catch((err) => {
     global.__zecbSchemaInit = undefined;
     throw err;

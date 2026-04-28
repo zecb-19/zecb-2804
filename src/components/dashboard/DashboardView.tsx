@@ -28,6 +28,8 @@ type Props = {
   activeBuilds: ProductRow[];
   recentRuns: AgentRunRow[];
   statusCounts: StatusCounts;
+  pendingApprovals: ProductRow[];
+  monthlyOpexEur: number;
 };
 
 type Kpi = {
@@ -45,19 +47,24 @@ const OUTREACH_PLACEHOLDER = [
   { label: "Active campaigns", value: "0", delta: "Meta Ads + LinkedIn", tone: "neutral" as const },
 ];
 
-const APPROVALS_PLACEHOLDER: ReadonlyArray<{
-  type: "launch" | "content" | "pattern" | "propagation";
-  title: string;
-  subtitle: string;
-  waiting: string;
-}> = [];
 
 export function DashboardView({
   firstName,
   activeBuilds,
   recentRuns,
   statusCounts,
+  pendingApprovals,
+  monthlyOpexEur,
 }: Props) {
+  const opexPct = Math.min(100, (monthlyOpexEur / 15_000) * 100);
+  const opexFmt =
+    monthlyOpexEur < 1
+      ? `€${monthlyOpexEur.toFixed(4)}`
+      : `€${monthlyOpexEur.toLocaleString("en", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
+
   const kpis: Kpi[] = [
     {
       label: "Live products",
@@ -83,20 +90,22 @@ export function DashboardView({
     },
     {
       label: "Monthly opex",
-      value: "€0",
-      trend: "of €15,000 cap",
+      value: opexFmt,
+      trend: `of €15,000 cap (${opexPct.toFixed(1)}%)`,
       icon: "payments",
-      trendTone: "neutral",
+      trendTone: opexPct > 80 ? "warn" : "neutral",
     },
     {
       label: "Pending approvals",
-      value: String(APPROVALS_PLACEHOLDER.length),
+      value: String(pendingApprovals.length),
       trend:
-        APPROVALS_PLACEHOLDER.length === 0
+        pendingApprovals.length === 0
           ? "all caught up"
-          : "needs your action",
+          : pendingApprovals.length === 1
+            ? "needs your action"
+            : "need your action",
       icon: "task_alt",
-      trendTone: APPROVALS_PLACEHOLDER.length > 0 ? "warn" : "good",
+      trendTone: pendingApprovals.length > 0 ? "warn" : "good",
     },
   ];
 
@@ -317,22 +326,66 @@ export function DashboardView({
           <div>
             <h3 className="font-h3 text-h3 text-primary">Pending approvals</h3>
             <p className="text-label-sm text-on-surface-variant">
-              Friday batch — keep operator time bounded
+              Step-11 HITL launch gates — Release Agent waits for your sign-off
             </p>
           </div>
-          {APPROVALS_PLACEHOLDER.length > 0 ? (
+          {pendingApprovals.length > 0 ? (
             <span className="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container text-label-sm font-semibold">
-              {APPROVALS_PLACEHOLDER.length} waiting
+              {pendingApprovals.length} waiting
             </span>
           ) : null}
         </div>
-        {APPROVALS_PLACEHOLDER.length === 0 ? (
+        {pendingApprovals.length === 0 ? (
           <EmptyBlock
             icon="task_alt"
             title="All caught up"
-            body="Approvals appear here when the Build Orchestrator hits step 11 (Launch approval), when Reviewer Agent flags pattern candidates, or when channels propose creative tests."
+            body="Launch-approval gates appear here when a build reaches step 11. Pattern, content, and propagation approvals will surface here once those rituals are wired."
           />
-        ) : null}
+        ) : (
+          <motion.ul
+            initial="hidden"
+            whileInView="visible"
+            viewport={inViewOnce}
+            variants={stagger(0.1, 0.07)}
+            className="divide-y divide-surface-variant"
+          >
+            {pendingApprovals.map((p) => (
+              <motion.li
+                key={p.id}
+                variants={fadeUpSm}
+                whileHover={{ x: 2 }}
+                transition={{ duration: 0.2 }}
+                className="py-3 first:pt-0 last:pb-0 flex items-center gap-4"
+              >
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-none bg-secondary-fixed text-secondary">
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 20 }}
+                  >
+                    rocket_launch
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-body-md font-semibold text-on-surface truncate">
+                    Approve launch — <span className="font-mono">{p.slug}</span>
+                  </div>
+                  <div className="text-label-sm text-on-surface-variant truncate">
+                    Steps 1–10 passed ·{" "}
+                    {p.estimated_monthly_opex_eur
+                      ? `est. €${Number(p.estimated_monthly_opex_eur).toFixed(0)}/mo opex`
+                      : "opex pending"}
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/pipeline"
+                  className="text-secondary font-semibold text-label-sm hover:underline flex-none"
+                >
+                  Review →
+                </Link>
+              </motion.li>
+            ))}
+          </motion.ul>
+        )}
       </motion.section>
 
       {/* Activity feed */}
