@@ -1,6 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
+
+import { PIPELINE_STEPS } from "@/lib/builds/definitions";
+import type { AgentRunRow, ProductRow } from "@/lib/builds/queries";
 
 import {
   cardHover,
@@ -12,6 +16,20 @@ import {
   stagger,
 } from "./motion";
 
+type StatusCounts = {
+  building: number;
+  live: number;
+  paused: number;
+  killed: number;
+};
+
+type Props = {
+  firstName: string;
+  activeBuilds: ProductRow[];
+  recentRuns: AgentRunRow[];
+  statusCounts: StatusCounts;
+};
+
 type Kpi = {
   label: string;
   value: string;
@@ -20,151 +38,68 @@ type Kpi = {
   trendTone: "neutral" | "good" | "warn";
 };
 
-const KPIS: Kpi[] = [
-  {
-    label: "Live products",
-    value: "3",
-    trend: "+1 this month",
-    icon: "rocket_launch",
-    trendTone: "good",
-  },
-  {
-    label: "Build queue",
-    value: "2",
-    trend: "in flight",
-    icon: "settings_suggest",
-    trendTone: "neutral",
-  },
-  {
-    label: "Monthly opex",
-    value: "€4,820",
-    trend: "of €15,000 cap",
-    icon: "payments",
-    trendTone: "neutral",
-  },
-  {
-    label: "Pending approvals",
-    value: "4",
-    trend: "needs your action",
-    icon: "task_alt",
-    trendTone: "warn",
-  },
+const OUTREACH_PLACEHOLDER = [
+  { label: "CAC (7d, multi-touch)", value: "—", delta: "no campaigns yet", tone: "neutral" as const },
+  { label: "Top creative CTR", value: "—", delta: "awaiting first creative", tone: "neutral" as const },
+  { label: "Frequency cap", value: "0 / 25", delta: "impressions / wk", tone: "neutral" as const },
+  { label: "Active campaigns", value: "0", delta: "Meta Ads + LinkedIn", tone: "neutral" as const },
 ];
 
-// Step names mirror PRD §7.2 Build Orchestrator pipeline.
-const ACTIVE_BUILDS = [
-  {
-    slug: "einkaufspreis-monitor",
-    template: "Monitoring-SaaS",
-    step: 7,
-    total: 11,
-    current: "Onboarding flow generation",
-    eta: "~6h",
-  },
-  {
-    slug: "vertragsfristen-wächter",
-    template: "Monitoring-SaaS",
-    step: 4,
-    total: 11,
-    current: "Product repo init",
-    eta: "~18h",
-  },
-];
-
-const OUTREACH = [
-  {
-    label: "CAC (7d, multi-touch)",
-    value: "€87",
-    delta: "−12%",
-    tone: "good" as const,
-  },
-  {
-    label: "Top creative CTR",
-    value: "3.4%",
-    delta: "Mehl-Preissprung jagen",
-    tone: "good" as const,
-  },
-  {
-    label: "Frequency cap",
-    value: "18 / 25",
-    delta: "impressions / wk",
-    tone: "neutral" as const,
-  },
-  {
-    label: "Active campaigns",
-    value: "6",
-    delta: "Meta Ads + LinkedIn",
-    tone: "neutral" as const,
-  },
-];
-
-type ApprovalType = "launch" | "content" | "pattern" | "propagation";
-const APPROVALS: Array<{
-  type: ApprovalType;
+const APPROVALS_PLACEHOLDER: ReadonlyArray<{
+  type: "launch" | "content" | "pattern" | "propagation";
   title: string;
   subtitle: string;
   waiting: string;
-}> = [
-  {
-    type: "launch",
-    title: "Approve launch — einkaufspreis-monitor.de",
-    subtitle: "Staging green · QA passed · est. €310/mo opex",
-    waiting: "12h",
-  },
-  {
-    type: "content",
-    title: "Approve 2 SEO drafts — fördermittel-radar",
-    subtitle: "Friday content batch · Reviewer Agent passed brand voice",
-    waiting: "2d",
-  },
-  {
-    type: "pattern",
-    title: "Promote pattern: observability_panel",
-    subtitle: "Reviewer Agent flagged · used by 3 templates",
-    waiting: "1d",
-  },
-  {
-    type: "propagation",
-    title: "Test top ad headline as LP H1 variant",
-    subtitle: "Meta winner · 14-day significance reached",
-    waiting: "3h",
-  },
-];
+}> = [];
 
-const ACTIVITY = [
-  {
-    time: "12:43",
-    actor: "Build Orchestrator",
-    text: "advanced einkaufspreis-monitor to step 7 (Onboarding flow generation)",
-  },
-  {
-    time: "11:50",
-    actor: "Reviewer Agent",
-    text: "flagged observability_panel for pattern promotion",
-  },
-  {
-    time: "10:50",
-    actor: "Meta Ads Agent",
-    text: "auto-paused fördermittel-radar creative #4 (CTR −42% under set mean)",
-  },
-  {
-    time: "10:12",
-    actor: "Content Agent",
-    text: "drafted 2 SEO articles for vertragsfristen-wächter awaiting review",
-  },
-  {
-    time: "09:33",
-    actor: "Lifecycle Email",
-    text: "delivered D7 'common pitfalls' to 87 tenants of einkaufspreis-monitor",
-  },
-  {
-    time: "09:00",
-    actor: "Orchestrator",
-    text: "queued Friday pattern-promotion ritual (4 candidates)",
-  },
-];
+export function DashboardView({
+  firstName,
+  activeBuilds,
+  recentRuns,
+  statusCounts,
+}: Props) {
+  const kpis: Kpi[] = [
+    {
+      label: "Live products",
+      value: String(statusCounts.live),
+      trend:
+        statusCounts.live === 0
+          ? "ship your first one"
+          : `${statusCounts.live === 1 ? "1 live" : `${statusCounts.live} live`}`,
+      icon: "rocket_launch",
+      trendTone: statusCounts.live > 0 ? "good" : "neutral",
+    },
+    {
+      label: "Build queue",
+      value: String(statusCounts.building),
+      trend:
+        statusCounts.building === 0
+          ? "queue empty"
+          : statusCounts.building === 1
+            ? "1 in flight"
+            : `${statusCounts.building} in flight`,
+      icon: "settings_suggest",
+      trendTone: "neutral",
+    },
+    {
+      label: "Monthly opex",
+      value: "€0",
+      trend: "of €15,000 cap",
+      icon: "payments",
+      trendTone: "neutral",
+    },
+    {
+      label: "Pending approvals",
+      value: String(APPROVALS_PLACEHOLDER.length),
+      trend:
+        APPROVALS_PLACEHOLDER.length === 0
+          ? "all caught up"
+          : "needs your action",
+      icon: "task_alt",
+      trendTone: APPROVALS_PLACEHOLDER.length > 0 ? "warn" : "good",
+    },
+  ];
 
-export function DashboardView({ firstName }: { firstName: string }) {
   return (
     <motion.div
       initial="hidden"
@@ -190,11 +125,7 @@ export function DashboardView({ firstName }: { firstName: string }) {
           <motion.span
             className="inline-block w-2 h-2 rounded-full bg-emerald-500"
             animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{
-              duration: 2.4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           />
           All systems nominal · DACH-EU
         </div>
@@ -205,7 +136,7 @@ export function DashboardView({ firstName }: { firstName: string }) {
         variants={stagger(0.05, 0.07)}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        {KPIS.map((k) => (
+        {kpis.map((k) => (
           <motion.div
             key={k.label}
             variants={scaleIn}
@@ -263,52 +194,75 @@ export function DashboardView({ firstName }: { firstName: string }) {
                 Live state across the 11-step pipeline
               </p>
             </div>
-            <span className="text-label-sm text-on-surface-variant px-2 py-1 rounded-full bg-surface-container-low">
-              {ACTIVE_BUILDS.length} in flight
-            </span>
+            <Link
+              href="/dashboard/buildspec"
+              className="text-secondary text-label-sm font-semibold hover:underline flex-none flex items-center gap-1"
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16 }}
+              >
+                add
+              </span>
+              New
+            </Link>
           </div>
-          <motion.ul
-            initial="hidden"
-            animate="visible"
-            variants={stagger(0.3, 0.12)}
-            className="space-y-5"
-          >
-            {ACTIVE_BUILDS.map((b) => {
-              const pct = (b.step / b.total) * 100;
-              return (
-                <motion.li key={b.slug} variants={fadeUpSm}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="font-mono text-body-md text-on-surface truncate">
-                        {b.slug}
+          {activeBuilds.length === 0 ? (
+            <EmptyBlock
+              icon="rocket_launch"
+              title="No builds in flight"
+              body="Compose a Monitoring-SaaS BuildSpec to get the Build Orchestrator started."
+              ctaLabel="Start a build"
+              ctaHref="/dashboard/buildspec"
+            />
+          ) : (
+            <motion.ul
+              initial="hidden"
+              animate="visible"
+              variants={stagger(0.2, 0.1)}
+              className="space-y-5"
+            >
+              {activeBuilds.map((b) => {
+                const pct = (b.build_step / b.build_total_steps) * 100;
+                const stepLabel =
+                  b.current_step_label ??
+                  PIPELINE_STEPS[b.build_step - 1] ??
+                  "Unknown";
+                return (
+                  <motion.li key={b.id} variants={fadeUpSm}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="font-mono text-body-md text-on-surface truncate">
+                          {b.slug}
+                        </div>
+                        <div className="text-label-sm text-on-surface-variant truncate">
+                          {b.template} · {stepLabel}
+                        </div>
                       </div>
-                      <div className="text-label-sm text-on-surface-variant truncate">
-                        {b.template} · {b.current}
+                      <div className="text-label-sm text-on-surface-variant flex-none">
+                        ETA ≤72h
                       </div>
                     </div>
-                    <div className="text-label-sm text-on-surface-variant flex-none">
-                      ETA {b.eta}
+                    <div className="mt-2 h-1.5 bg-surface-variant rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-secondary"
+                        initial={{ width: "0%" }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{
+                          duration: 0.9,
+                          ease: easeOut,
+                          delay: 0.45,
+                        }}
+                      />
                     </div>
-                  </div>
-                  <div className="mt-2 h-1.5 bg-surface-variant rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-secondary"
-                      initial={{ width: "0%" }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{
-                        duration: 0.9,
-                        ease: easeOut,
-                        delay: 0.45,
-                      }}
-                    />
-                  </div>
-                  <div className="text-label-sm text-on-surface-variant mt-1">
-                    Step {b.step} of {b.total}
-                  </div>
-                </motion.li>
-              );
-            })}
-          </motion.ul>
+                    <div className="text-label-sm text-on-surface-variant mt-1">
+                      Step {b.build_step} of {b.build_total_steps}
+                    </div>
+                  </motion.li>
+                );
+              })}
+            </motion.ul>
+          )}
         </motion.section>
 
         <motion.section
@@ -334,7 +288,7 @@ export function DashboardView({ firstName }: { firstName: string }) {
             variants={stagger(0.25, 0.06)}
             className="grid grid-cols-2 gap-x-6 gap-y-5"
           >
-            {OUTREACH.map((o) => (
+            {OUTREACH_PLACEHOLDER.map((o) => (
               <motion.div key={o.label} variants={fadeUpSm}>
                 <div className="text-label-sm text-on-surface-variant">
                   {o.label}
@@ -342,13 +296,7 @@ export function DashboardView({ firstName }: { firstName: string }) {
                 <div className="font-h3 text-h3 text-primary mt-1 truncate">
                   {o.value}
                 </div>
-                <div
-                  className={
-                    o.tone === "good"
-                      ? "text-label-sm text-emerald-600 mt-0.5"
-                      : "text-label-sm text-on-surface-variant mt-0.5"
-                  }
-                >
+                <div className="text-label-sm text-on-surface-variant mt-0.5">
                   {o.delta}
                 </div>
               </motion.div>
@@ -357,7 +305,7 @@ export function DashboardView({ firstName }: { firstName: string }) {
         </motion.section>
       </motion.div>
 
-      {/* Pending approvals — appears as user reaches it */}
+      {/* Pending approvals */}
       <motion.section
         initial="hidden"
         whileInView="visible"
@@ -372,46 +320,19 @@ export function DashboardView({ firstName }: { firstName: string }) {
               Friday batch — keep operator time bounded
             </p>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container text-label-sm font-semibold">
-            {APPROVALS.length} waiting
-          </span>
+          {APPROVALS_PLACEHOLDER.length > 0 ? (
+            <span className="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container text-label-sm font-semibold">
+              {APPROVALS_PLACEHOLDER.length} waiting
+            </span>
+          ) : null}
         </div>
-        <motion.ul
-          initial="hidden"
-          whileInView="visible"
-          viewport={inViewOnce}
-          variants={stagger(0.1, 0.07)}
-          className="divide-y divide-surface-variant"
-        >
-          {APPROVALS.map((a) => (
-            <motion.li
-              key={a.title}
-              variants={fadeUpSm}
-              whileHover={{ x: 2 }}
-              transition={{ duration: 0.2 }}
-              className="py-3 first:pt-0 last:pb-0 flex items-center gap-4 cursor-pointer hover:bg-surface-container-low/40 -mx-2 px-2 rounded-lg"
-            >
-              <ApprovalBadge type={a.type} />
-              <div className="flex-1 min-w-0">
-                <div className="text-body-md font-semibold text-on-surface truncate">
-                  {a.title}
-                </div>
-                <div className="text-label-sm text-on-surface-variant truncate">
-                  {a.subtitle}
-                </div>
-              </div>
-              <div className="text-label-sm text-on-surface-variant flex-none hidden sm:block">
-                waiting {a.waiting}
-              </div>
-              <button
-                type="button"
-                className="text-secondary font-semibold text-label-sm hover:underline flex-none"
-              >
-                Review →
-              </button>
-            </motion.li>
-          ))}
-        </motion.ul>
+        {APPROVALS_PLACEHOLDER.length === 0 ? (
+          <EmptyBlock
+            icon="task_alt"
+            title="All caught up"
+            body="Approvals appear here when the Build Orchestrator hits step 11 (Launch approval), when Reviewer Agent flags pattern candidates, or when channels propose creative tests."
+          />
+        ) : null}
       </motion.section>
 
       {/* Activity feed */}
@@ -429,66 +350,104 @@ export function DashboardView({ firstName }: { firstName: string }) {
               From the agent_runs ledger — every action attributable, costable
             </p>
           </div>
-          <a
+          <Link
             href="/dashboard/audit"
             className="text-secondary font-semibold text-label-sm hover:underline"
           >
             Open audit trail →
-          </a>
+          </Link>
         </div>
-        <motion.ol
-          initial="hidden"
-          whileInView="visible"
-          viewport={inViewOnce}
-          variants={stagger(0.1, 0.05)}
-          className="space-y-3"
-        >
-          {ACTIVITY.map((a, i) => (
-            <motion.li key={i} variants={fadeUpSm} className="flex gap-3">
-              <div className="text-label-sm font-mono text-on-surface-variant w-12 flex-none pt-0.5 tabular-nums">
-                {a.time}
-              </div>
-              <div className="flex-1 text-body-md">
-                <span className="font-semibold text-on-surface">{a.actor}</span>{" "}
-                <span className="text-on-surface-variant">{a.text}</span>
-              </div>
-            </motion.li>
-          ))}
-        </motion.ol>
+        {recentRuns.length === 0 ? (
+          <EmptyBlock
+            icon="fact_check"
+            title="No activity yet"
+            body="Once you dispatch a build, every Build Orchestrator and Channel Agent run lands here with cost and latency."
+          />
+        ) : (
+          <motion.ol
+            initial="hidden"
+            whileInView="visible"
+            viewport={inViewOnce}
+            variants={stagger(0.05, 0.04)}
+            className="space-y-3"
+          >
+            {recentRuns.map((r) => (
+              <motion.li key={r.id} variants={fadeUpSm} className="flex gap-3">
+                <div className="text-label-sm font-mono text-on-surface-variant w-12 flex-none pt-0.5 tabular-nums">
+                  {formatTime(r.created_at)}
+                </div>
+                <div className="flex-1 text-body-md min-w-0">
+                  <span className="font-semibold text-on-surface">
+                    {r.agent}
+                  </span>{" "}
+                  <span className="text-on-surface-variant">
+                    {humanise(r)}
+                  </span>
+                </div>
+                <div className="text-label-sm font-mono text-on-surface-variant flex-none hidden sm:block tabular-nums">
+                  €{Number(r.cost_eur || 0).toFixed(4)}
+                </div>
+              </motion.li>
+            ))}
+          </motion.ol>
+        )}
       </motion.section>
     </motion.div>
   );
 }
 
-function ApprovalBadge({ type }: { type: ApprovalType }) {
-  const map: Record<ApprovalType, { icon: string; cls: string }> = {
-    launch: {
-      icon: "rocket_launch",
-      cls: "bg-secondary-fixed text-secondary",
-    },
-    content: {
-      icon: "edit_note",
-      cls: "bg-amber-100 text-amber-800",
-    },
-    pattern: {
-      icon: "extension",
-      cls: "bg-emerald-100 text-emerald-800",
-    },
-    propagation: {
-      icon: "share",
-      cls: "bg-purple-100 text-purple-800",
-    },
-  };
-  const { icon, cls } = map[type];
+function EmptyBlock({
+  icon,
+  title,
+  body,
+  ctaLabel,
+  ctaHref,
+}: {
+  icon: string;
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.08, rotate: 4 }}
-      transition={{ type: "spring", stiffness: 320, damping: 18 }}
-      className={`w-9 h-9 rounded-lg flex items-center justify-center flex-none ${cls}`}
-    >
-      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+    <div className="text-center py-6">
+      <span
+        className="material-symbols-outlined text-on-surface-variant"
+        style={{ fontSize: 36 }}
+      >
         {icon}
       </span>
-    </motion.div>
+      <h4 className="font-h3 text-h3 text-on-surface mt-2">{title}</h4>
+      <p className="text-on-surface-variant mt-1 max-w-md mx-auto text-body-md">
+        {body}
+      </p>
+      {ctaLabel && ctaHref ? (
+        <Link
+          href={ctaHref}
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            add
+          </span>
+          {ctaLabel}
+        </Link>
+      ) : null}
+    </div>
   );
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "--:--";
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function humanise(r: AgentRunRow): string {
+  const slug = r.product_slug ?? "—";
+  const task = r.task_name.replace(/_/g, " ");
+  const model = r.llm_model ? ` via ${r.llm_model}` : "";
+  if (r.status === "ok" || r.status === "success") {
+    return `ran ${task} on ${slug}${model}`;
+  }
+  return `${r.status} on ${task} for ${slug}${model}`;
 }

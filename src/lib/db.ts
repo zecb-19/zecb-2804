@@ -62,6 +62,99 @@ export function ensureSchema(): Promise<void> {
     );
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ;`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;`);
+
+    // --- products / build_specs / agent_runs ----------------------------
+    // Per PRD §9 — products registry, BuildSpec history, and the central
+    // agent_runs ledger every cost number depends on. CREATE statements
+    // mirror the schema already deployed on RDS so a fresh database lands
+    // identical to prod; subsequent ALTERs add the columns the BuildSpec
+    // form needs without disturbing existing rows.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        slug TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        tagline TEXT,
+        template_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'building',
+        mrr_eur INTEGER NOT NULL DEFAULT 0,
+        users_count INTEGER NOT NULL DEFAULT 0,
+        growth_30d REAL NOT NULL DEFAULT 0,
+        palette JSONB NOT NULL DEFAULT '{}'::jsonb,
+        current_build_run_id TEXT,
+        owner_user_id UUID,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        phase TEXT NOT NULL DEFAULT 'ignition',
+        phase_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS template_version TEXT NOT NULL DEFAULT '1.0.0';`,
+    );
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS build_step INT NOT NULL DEFAULT 1;`,
+    );
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS build_total_steps INT NOT NULL DEFAULT 11;`,
+    );
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS current_step_label TEXT;`,
+    );
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS estimated_monthly_opex_eur NUMERIC(10,2);`,
+    );
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS branding JSONB NOT NULL DEFAULT '{}'::jsonb;`,
+    );
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS pricing_tiers JSONB NOT NULL DEFAULT '[]'::jsonb;`,
+    );
+    await pool.query(
+      `ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS products_owner_idx ON products (owner_user_id);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS products_status_idx ON products (status);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS build_specs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        run_id TEXT,
+        version INTEGER NOT NULL DEFAULT 1,
+        spec_json JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS build_specs_product_idx ON build_specs (product_id);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS agent_runs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+        build_run_id TEXT,
+        agent TEXT NOT NULL,
+        task_name TEXT NOT NULL,
+        input JSONB NOT NULL DEFAULT '{}'::jsonb,
+        output JSONB NOT NULL DEFAULT '{}'::jsonb,
+        status TEXT NOT NULL DEFAULT 'ok',
+        error_message TEXT,
+        llm_model TEXT,
+        cost_eur REAL NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS agent_runs_product_idx ON agent_runs (product_id, created_at DESC);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS agent_runs_recent_idx ON agent_runs (created_at DESC);`,
+    );
   })().catch((err) => {
     global.__zecbSchemaInit = undefined;
     throw err;

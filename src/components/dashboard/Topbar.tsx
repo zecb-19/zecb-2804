@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { easeOut } from "./motion";
@@ -82,16 +83,20 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
             }}
           />
         </motion.button>
-        <motion.button
-          {...buttonHover}
-          type="button"
-          className="bg-primary text-on-primary px-3 md:px-4 py-2 rounded-lg font-semibold text-body-md hover:opacity-90 flex items-center gap-1.5"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-            add
-          </span>
-          <span className="hidden sm:inline">New Build</span>
-        </motion.button>
+        <motion.div {...buttonHover}>
+          <Link
+            href="/dashboard/buildspec"
+            className="bg-primary text-on-primary px-3 md:px-4 py-2 rounded-lg font-semibold text-body-md hover:opacity-90 flex items-center gap-1.5"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 18 }}
+            >
+              add
+            </span>
+            <span className="hidden sm:inline">New Build</span>
+          </Link>
+        </motion.div>
       </div>
     </motion.header>
   );
