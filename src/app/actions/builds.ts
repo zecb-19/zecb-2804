@@ -17,6 +17,11 @@ export type ApproveBuildState =
   | { ok: false; message: string }
   | undefined;
 
+export type RejectBuildState =
+  | { ok: true; productId: string }
+  | { ok: false; message: string }
+  | undefined;
+
 const KEY_TO_TOP: Record<string, keyof CreateBuildErrors> = {
   product_slug: "product_slug",
   product_name: "product_name",
@@ -261,5 +266,100 @@ export async function approveBuildAction(
   } catch (err) {
     console.error("[approveBuildAction] failed:", err);
     return { ok: false, message: "Could not approve. Please try again." };
+  }
+}
+
+/**
+ * Reject a product at the launch gate. Sets status to 'killed' and logs
+ * the rejection with the operator's reason in the audit trail.
+ */
+export async function rejectBuildAction(
+  _prev: RejectBuildState,
+  formData: FormData,
+): Promise<RejectBuildState> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, message: "Your session has expired. Please sign in again." };
+  }
+  const productId = formData.get("product_id");
+  if (typeof productId !== "string" || productId.length === 0) {
+    return { ok: false, message: "Missing product id." };
+  }
+  const reason = (formData.get("reason") as string) || "No reason provided";
+
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const lookup = await client.query<{
+        id: string;
+        slug: string;
+        status: string;
+      }>(
+        `SELECT id::text AS id, slug, status
+           FROM products
+          WHERE id = $1::uuid AND owner_user_id = $2::uuid
+          FOR UPDATE`,
+        [productId, user.id],
+      );
+      const row = lookup.rows[0];
+      if (!row) {
+        await client.query("ROLLBACK");
+        return { ok: false, message: "Product not found in your portfolio." };
+      }
+      if (row.status !== "building") {
+        await client.query("ROLLBACK");
+        return {
+          ok: false,
+          message: `Cannot reject — product is already ${row.status}.`,
+        };
+      }
+
+      await client.query(
+        `UPDATE products
+            SET status = 'killed',
+                updated_at = NOW()
+          WHERE id = $1::uuid`,
+        [row.id],
+      );
+
+      await client.query(
+        `INSERT INTO agent_runs
+           (product_id, agent, task_name, input, status, cost_eur)
+         VALUES
+           ($1::uuid, 'Release Agent', 'launch_rejected',
+            $2::jsonb, 'ok', 0)`,
+        [
+          row.id,
+          JSON.stringify({
+            slug: row.slug,
+            rejected_by: user.id,
+            rejected_at: new Date().toISOString(),
+            reason,
+          }),
+        ],
+      );
+
+      await client.query("COMMIT");
+
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/pipeline");
+      revalidatePath("/dashboard/launches");
+
+      return { ok: true, productId: row.id };
+    } catch (err) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* swallow */
+      }
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error("[rejectBuildAction] failed:", err);
+    return { ok: false, message: "Could not reject. Please try again." };
   }
 }

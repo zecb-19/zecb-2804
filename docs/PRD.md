@@ -233,6 +233,22 @@ A template ships only when **all seven** exist, are documented, and are exercise
      normalize(raw: FetchResult): Promise<NormalizedObservation[]>;
      estimateCostPerFetch(): CostEstimate;
    }
+
+   type FetchResult = {
+     raw_payload: unknown;
+     fetched_at: string;
+     http_status?: number;
+     fetch_duration_ms: number;
+     retries_used: number;
+   };
+
+   type NormalizedObservation = {
+     data_source_id: string;
+     observed_at: string;
+     dimensions: Record<string, string>;   // e.g. { product_sku: "...", supplier: "..." }
+     measures: Record<string, number | string | boolean>;
+     raw_ref?: string;   // R2 URL to archived raw fetch
+   };
    ```
 
 2. **Scheduler.** BullMQ-based; per-tenant scheduling at configured frequency. Tier limits: free → 24h, premium → 5min. Jobs idempotent, replayable, telemetry-emitting.
@@ -246,6 +262,22 @@ A template ships only when **all seven** exist, are documented, and are exercise
      trigger: measures.price_eur > previous.measures.price_eur * 1.1
      notify: email
      throttle_minutes: 1440
+
+   - name: "Neue Förderung passt"
+     when: observation.dimensions.program_category == "digitalisierung_kmu"
+     trigger:
+       all:
+         - measures.funding_eur_min >= 5000
+         - measures.deadline_days_remaining >= 14
+     notify: [email, slack]
+     throttle_minutes: 0
+
+   - name: "Wettbewerber-Preis drop"
+     when: observation.dimensions.competitor == "competitor_a"
+     trigger: measures.list_price < previous.measures.list_price
+     notify: slack
+     include_history: true
+     throttle_minutes: 360
    ```
    Operators: `threshold`, `change_rate`, `absence`, `presence`, `regex_match`, `semantic_match`, `statistical_anomaly`, `deadline_approaching`. Enabled set per BuildSpec gates the rule-builder UI.
 
@@ -273,7 +305,12 @@ A template ships only when **all seven** exist, are documented, and are exercise
 
 **Core workflow.** Client → input (single or batch) → product-defined enrichment function (often LLM-backed) → structured result. Per-key rate limits, usage metering, async webhook callbacks.
 
-**Examples.** Firmendaten-Anreicherung, DACH-Adress-Validierung-Plus, Dokument-Klassifikation, SKR04 Kategorisierungs-API, Sentiment-Monitor-API.
+**Examples.**
+- **Firmendaten-Anreicherung:** email or domain in → company details, industry, size, tech stack out.
+- **DACH-Adress-Validierung-Plus:** address string in → validated, normalized, enriched with region metadata.
+- **Dokument-Klassifikation:** PDF in → document type (invoice, contract, order, delivery note) + confidence + extracted fields.
+- **SKR04 Kategorisierungs-API:** transaction description in → SKR04 account suggestion.
+- **Sentiment-Monitor-API:** review text in → sentiment, themes, urgency, response priority.
 
 **Schema highlights.**
 ```yaml
@@ -300,7 +337,11 @@ developer_experience:
 ### 7.6 Template 4 — Dashboard & Reporting-SaaS (V2+)
 **Identity.** Integration-heavy. Value comes from integration breadth and metric sharpness. Most competitive category — only justified for clearly specific, under-served needs. Schema explicitly forbids unfocused dashboards.
 
-**Examples.** Gastro-Deckungsbeitrags-Dashboard, Baufortschritts-Cockpit, Webshop-Werbekosten-Dashboard, Social-Media-Effectiveness-Dashboard.
+**Examples.**
+- **Gastro-Deckungsbeitrags-Dashboard:** inventory + POS + staff costs in one view.
+- **Baufortschritts-Cockpit:** project milestones + spend + supplier delivery for building companies.
+- **Webshop-Werbekosten-Dashboard:** Meta + Google + internal margin in one view.
+- **Social-Media-Effectiveness-Dashboard:** platform metrics + brand mentions + sentiment.
 
 **Core components.** 20+ pre-built integration connectors (Meta Ads, Google Ads, Stripe, Shopify, DATEV, personio, HubSpot, Slack, GA4, …); ETL with incremental sync; metric definition DSL (formulas on normalized data models); dashboard builder (KPI card, time series, bar, funnel, cohort, geo); scheduled PDF/HTML/email reports; **white-label capability** (agencies → SMB clients = important secondary ICP).
 
@@ -499,10 +540,10 @@ Campaign: <product>_cold_<segment>_<batch>
 **Strategy.** Keyword Gap Analysis from Loop 1 + Loop 2 (defined in Base Briefing). Content Agent operates from a rolling plan — never ad-hoc.
 
 **Content categories.**
-- **Problem-aware** (majority): 1500–3000 words, pain queries.
-- **Solution-aware:** 800–1500 words, comparison / "best-of" queries.
-- **Tool / how-to:** 1000–2000 words, transactional queries.
-- **Data / research posts:** original analysis from product data when available — strongest for backlinks.
+- **Problem-aware** (majority): 1500–3000 words, pain queries. Example: _"So erkennen Gastronomen Preissprünge bei Lieferanten"_.
+- **Solution-aware:** 800–1500 words, comparison / "best-of" queries. Example: _"5 Methoden, um Einkaufspreise in der Gastro zu überwachen"_.
+- **Tool / how-to:** 1000–2000 words, transactional queries. Example: _"Metro-Preisliste automatisch überwachen: Schritt-für-Schritt-Anleitung"_.
+- **Data / research posts:** original analysis from product data when available — strongest for backlinks. Example: _"Einkaufspreis-Entwicklung DACH-Gastro H1 2026: Analyse von 12.000 Preispunkten"_.
 
 **Pipeline.** Weekly keyword research (Search Console + ahrefs/DataForSEO) → topic planning (2 articles/week with target keyword, category, outline, internal linking) → draft via LLM against strict brief → Reviewer Agent quality check → human approval (V1) / 10% sample (V2) → headless CMS publish (Payload, Ghost, or Next.js MDX) with schema markup, OG, reading time → distribution (LinkedIn auto-promo, newsletter teaser, 3 social posts) → weekly performance check; underperforming content rewritten after 90 days.
 
@@ -511,7 +552,11 @@ Campaign: <product>_cold_<segment>_<batch>
 **Anti-AI-collapse guardrails.** Min original data/screenshots per article (reject pure prose); required first-person product claims with specifics; no "In this article we will…" intros; forbidden phrase list ("delve", "navigate the complexities", "in today's fast-paced world"); real attributable author byline (founder or named beta users with consent); cap 2 articles/week per product in V1.
 
 ### 8.9 Channels 6–8 — Organic Social, Community/Forums, Directories
-**Channel 6 — Organic Social (V1).** LinkedIn primary (3 posts/week from SEO + product insights + founder voice). X secondary (1–2 posts/week, dev-tool products + founder presence). Instagram/TikTok case-by-case for consumer-adjacent verticals. Facebook organic explicitly excluded (ROI). **Authenticity rules:** specific details (numbers, names, observations) — never generic; consistent named persona per product; human-like posting randomness; no auto-comments on others' posts in V1; only real screenshots, never stock AI imagery.
+**Channel 6 — Organic Social (V1).** LinkedIn primary (3 posts/week from SEO + product insights + founder voice). X secondary (1–2 posts/week, dev-tool products + founder presence). Instagram/TikTok case-by-case for consumer-adjacent verticals. Facebook organic explicitly excluded (ROI).
+
+**Content sources.** Every SEO blog article → 3 LinkedIn posts (hook + body + CTA) and 5 X posts (one per angle). Weekly product-metric or user-outcome posts (with consent). Industry commentary: Content Agent scans industry news daily, suggests commentary posts when a relevant story matches the product's narrative. Behind-the-scenes: data or chart-based posts showing product insights.
+
+**Authenticity rules:** specific details (numbers, names, observations) — never generic; consistent named persona per product; human-like posting randomness; no auto-comments on others' posts in V1; only real screenshots, never stock AI imagery.
 
 **Channel 7 — Community / Forums (V2+, V1 OUT).** Highest authenticity-risk channel. V1 excludes; V2 enables with heavy guardrails. **Rules:** one disclosed-identity persona per product (no anonymous); only communities where audience already is + promotion explicitly allowed/tolerated (NOT r/SaaS, r/Entrepreneur); 10:1 helpful-contribution-to-mention ratio (tracked); transparent operator disclosure on every product mention; **never** upvote manipulation, multi-account, fake testimonials, astroturfing; Community Agent drafts → operator reviews every post in V2; V3 may automate low-risk replies after track record.
 

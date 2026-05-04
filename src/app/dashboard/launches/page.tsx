@@ -1,18 +1,16 @@
-import { SectionStub } from "@/components/dashboard/SectionStub";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <SectionStub
-      title="Launch Approval"
-      blurb="The HITL gate for V1. Release Agent only cuts production DNS and activates GTM after you approve here."
-      icon="check_circle"
-      bullets={[
-        "Staging URL + QA report (Playwright signup → cancel → delete journey).",
-        "Marketing site preview at www.<product_domain> with copy, pricing, branding.",
-        "Stripe products and prices configured — verified before approval.",
-        "First-fetch sample from each data source + monthly operating-cost estimate.",
-        "Approve · Request fix · Reject — all decisions logged with actor and timestamp.",
-      ]}
-    />
-  );
+import { LaunchApprovalView } from "@/components/dashboard/LaunchApprovalView";
+import { getCurrentUser } from "@/lib/auth/dal";
+import { listLaunchReviewsForUser } from "@/lib/builds/queries";
+import { advancePipelinesForUser } from "@/lib/builds/simulator";
+
+export default async function Page() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  await advancePipelinesForUser(user.id);
+  const products = await listLaunchReviewsForUser(user.id);
+
+  return <LaunchApprovalView products={products} />;
 }

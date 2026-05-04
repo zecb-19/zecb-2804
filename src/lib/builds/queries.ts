@@ -238,6 +238,105 @@ export async function listDistinctAgentsForUser(
   return rows.map((r) => r.agent);
 }
 
+// --- Launch Approval review data -------------------------------------------
+
+export type LaunchReviewProduct = ProductRow & {
+  branding: Record<string, unknown> | null;
+  pricing_tiers: Array<Record<string, unknown>> | null;
+  build_spec: Record<string, unknown> | null;
+  build_cost_eur: number;
+  agent_runs: Array<{
+    agent: string;
+    task_name: string;
+    status: string;
+    cost_eur: string;
+    llm_model: string | null;
+    created_at: string;
+  }>;
+};
+
+export async function listLaunchReviewsForUser(
+  userId: string,
+): Promise<LaunchReviewProduct[]> {
+  const { rows: products } = await pool.query<
+    ProductRow & {
+      branding: string | null;
+      pricing_tiers: string | null;
+    }
+  >(
+    `SELECT ${PRODUCT_COLUMNS},
+            p.branding::text           AS branding,
+            p.pricing_tiers::text      AS pricing_tiers
+       FROM products p
+      WHERE p.owner_user_id = $1::uuid
+        AND p.status = 'building'
+        AND COALESCE(p.build_step, 1) >= COALESCE(p.build_total_steps, 11)
+      ORDER BY COALESCE(p.updated_at, p.created_at) DESC`,
+    [userId],
+  );
+
+  if (products.length === 0) return [];
+
+  const results: LaunchReviewProduct[] = [];
+  for (const product of products) {
+    const { rows: specRows } = await pool.query<{ spec_json: string }>(
+      `SELECT spec_json::text AS spec_json
+         FROM build_specs
+        WHERE product_id = $1::uuid
+        ORDER BY version DESC
+        LIMIT 1`,
+      [product.id],
+    );
+
+    const { rows: runRows } = await pool.query<{
+      agent: string;
+      task_name: string;
+      status: string;
+      cost_eur: string;
+      llm_model: string | null;
+      created_at: string;
+    }>(
+      `SELECT agent, task_name, status,
+              cost_eur::text AS cost_eur,
+              llm_model,
+              created_at::text AS created_at
+         FROM agent_runs
+        WHERE product_id = $1::uuid
+        ORDER BY created_at ASC`,
+      [product.id],
+    );
+
+    const totalCost = runRows.reduce(
+      (sum, r) => sum + Number(r.cost_eur || 0),
+      0,
+    );
+
+    let branding: Record<string, unknown> | null = null;
+    let pricingTiers: Array<Record<string, unknown>> | null = null;
+    let buildSpec: Record<string, unknown> | null = null;
+
+    try {
+      if (product.branding) branding = JSON.parse(product.branding);
+    } catch { /* */ }
+    try {
+      if (product.pricing_tiers) pricingTiers = JSON.parse(product.pricing_tiers);
+    } catch { /* */ }
+    try {
+      if (specRows[0]?.spec_json) buildSpec = JSON.parse(specRows[0].spec_json);
+    } catch { /* */ }
+
+    results.push({
+      ...product,
+      branding,
+      pricing_tiers: pricingTiers,
+      build_spec: buildSpec,
+      build_cost_eur: totalCost,
+      agent_runs: runRows,
+    });
+  }
+  return results;
+}
+
 export async function countProductsByStatus(
   userId: string,
 ): Promise<{ building: number; live: number; paused: number; killed: number }> {
