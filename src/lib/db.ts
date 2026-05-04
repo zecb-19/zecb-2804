@@ -201,6 +201,167 @@ export function ensureSchema(): Promise<void> {
     await pool.query(
       `CREATE INDEX IF NOT EXISTS msr_status_idx ON market_signal_reports (status);`,
     );
+    // --- templates (§7.1 – §7.8) -------------------------------------------
+    // Layer-2 product archetypes. Each row stores metadata, the 7 artifact
+    // statuses, and supported product examples. Dynamic stats (products
+    // built, cost) are derived from products + agent_runs at query time.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        version TEXT NOT NULL DEFAULT '1.0.0',
+        status TEXT NOT NULL DEFAULT 'draft',
+        tier TEXT NOT NULL DEFAULT 'v1',
+        description TEXT,
+        identity TEXT,
+        core_workflow TEXT,
+        artifacts JSONB NOT NULL DEFAULT '[]'::jsonb,
+        supported_examples JSONB NOT NULL DEFAULT '[]'::jsonb,
+        governance_notes TEXT,
+        eval_pass_rate REAL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Seed V1 + V2 templates (idempotent — ON CONFLICT DO NOTHING).
+    await pool.query(`
+      INSERT INTO templates (id, name, version, status, tier, description, identity, core_workflow, artifacts, supported_examples, governance_notes, eval_pass_rate)
+      VALUES
+        (
+          'monitoring-saas',
+          'Monitoring-SaaS',
+          '1.0.0',
+          'active',
+          'v1',
+          'Passive-observation product class. Watches data sources on a schedule, detects changes/anomalies via user-defined rules, notifies via chosen channels, maintains searchable history.',
+          'Widest SMB-niche coverage, predictable unit economics, deterministic core workflow — well-suited to agentic instantiation.',
+          'Observe data sources on schedule → detect changes via rules → notify user → store history',
+          $1::jsonb,
+          $2::jsonb,
+          'V1 template. Freeze if eval pass rate drops below 98%.',
+          100.0
+        ),
+        (
+          'workflow-automation',
+          'Workflow-Automation-SaaS',
+          '0.1.0',
+          'draft',
+          'v2',
+          'Active counterpart to Monitoring — executes work on the user''s behalf. LLM-heavy, more valuable per seat, more expensive to operate, more sensitive to quality failures.',
+          'Different from Monitoring: active (executes work) vs passive (observes and notifies). Makes it LLM-heavy with mandatory cost guardrails.',
+          'User configures trigger → pipeline of processing steps (often LLM-based) → output action',
+          $3::jsonb,
+          $4::jsonb,
+          'V2 template. Requires mandatory llm_cost_guardrails in every BuildSpec.',
+          NULL
+        ),
+        (
+          'data-enrichment-api',
+          'Data-Enrichment-API',
+          '0.1.0',
+          'draft',
+          'v2',
+          'Developer-facing. API-only consumption. Usage-based pricing. Sub-linear support cost. Weaker impulse-buy funnel; sticky integrations → strong retention.',
+          'Consumers integrate via API. Different unit economics: usage-based pricing, scales sub-linearly with support cost.',
+          'Client sends input (single or batch) → product-defined enrichment function → structured result',
+          $5::jsonb,
+          $6::jsonb,
+          'V2 template. Requires OpenAPI docs, SDK generation, and playground.',
+          NULL
+        ),
+        (
+          'dashboard-reporting',
+          'Dashboard & Reporting-SaaS',
+          '0.1.0',
+          'draft',
+          'v2',
+          'Integration-heavy. Value comes from integration breadth and metric sharpness. Most competitive category — only justified for clearly specific, under-served needs.',
+          'Configuration schema explicitly forbids unfocused dashboards. Only justified when a clearly specific, under-served need exists.',
+          'Integrate data sources → ETL with incremental sync → define metrics → build dashboards → scheduled reports',
+          $7::jsonb,
+          $8::jsonb,
+          'V2+ template. White-label capability for agencies is an important secondary ICP.',
+          NULL
+        )
+      ON CONFLICT (id) DO NOTHING;
+    `, [
+      // monitoring-saas artifacts
+      JSON.stringify([
+        { name: "Code scaffold", status: "complete", description: "TypeScript monorepo package with documented, typed extension points" },
+        { name: "Configuration schema", status: "complete", description: "JSON Schema (draft 2020-12) — MonitoringSaaSBuildSpec validated by Build Orchestrator" },
+        { name: "Workflow library", status: "in_progress", description: "Data-source connectors, alert rule evaluators, notification channels" },
+        { name: "UI pattern kit", status: "in_progress", description: "shadcn/ui React components: dashboard grid, source configurator, rule builder, timeline" },
+        { name: "Prompt and eval package", status: "not_started", description: "Versioned prompts with min 50 graded eval examples per prompt" },
+        { name: "Operations runbook", status: "not_started", description: "Alert interpretation guide, 20-40 canned support replies, maintenance jobs" },
+        { name: "Marketing & onboarding kit", status: "not_started", description: "Landing-page sections, onboarding flows, lifecycle email sequences" },
+      ]),
+      // monitoring-saas examples
+      JSON.stringify([
+        { name: "Einkaufspreis-Monitor", description: "Wholesale price tracking (Metro, Transgourmet)" },
+        { name: "Fördermittel-Radar", description: "Federal/state/EU funding database alerts" },
+        { name: "Wettbewerbs-Monitor", description: "Competitor sites, pricing, jobs tracking" },
+        { name: "Vertragsfristen-Wächter", description: "Contract date extraction + deadline alerts" },
+        { name: "Lieferanten-Compliance-Monitor", description: "Supplier certifications, ESG disclosures" },
+        { name: "SEO-Rank-Tracker", description: "Local Google rankings for businesses" },
+        { name: "Regulatory-Change-Radar", description: "Vertical-specific authority publications" },
+      ]),
+      // workflow-automation artifacts
+      JSON.stringify([
+        { name: "Code scaffold", status: "not_started", description: "TypeScript monorepo package with pipeline execution engine" },
+        { name: "Configuration schema", status: "not_started", description: "Pipelines, review_modes, llm_cost_guardrails, output_actions" },
+        { name: "Workflow library", status: "not_started", description: "12 pipeline steps: fetch_context, llm_generate, human_review, publish, etc." },
+        { name: "UI pattern kit", status: "not_started", description: "Visual pipeline builder, unified review inbox with SLA countdown" },
+        { name: "Prompt and eval package", status: "not_started", description: "LLM generation prompts with cost guardrails" },
+        { name: "Operations runbook", status: "not_started", description: "Pipeline failure handling, cost escalation procedures" },
+        { name: "Marketing & onboarding kit", status: "not_started", description: "Pipeline template gallery, quick-start wizard" },
+      ]),
+      // workflow-automation examples
+      JSON.stringify([
+        { name: "Local-SEO-Autopilot", description: "Weekly Google Business Profile posts, review replies" },
+        { name: "Angebots-Generator", description: "Automated quote drafting for tradespeople" },
+        { name: "Lead-Enrichment-Bot", description: "Inbound lead enrichment via APIs + LLM, CRM push" },
+        { name: "Content-Repurposer", description: "Blog post → LinkedIn/X/newsletter versions" },
+        { name: "Invoice-Triage", description: "Supplier PDFs → parsed, categorized, pre-booked for DATEV" },
+        { name: "Outbound-Email-Generator", description: "Personalized cold emails with send throttling" },
+      ]),
+      // data-enrichment-api artifacts
+      JSON.stringify([
+        { name: "Code scaffold", status: "not_started", description: "API-first TypeScript package with rate limiting and usage metering" },
+        { name: "Configuration schema", status: "not_started", description: "Enrichment input/output schemas, SLA targets, pricing model" },
+        { name: "Workflow library", status: "not_started", description: "Sync and async batch processing, webhook callbacks" },
+        { name: "UI pattern kit", status: "not_started", description: "API playground, usage dashboard, key management" },
+        { name: "Prompt and eval package", status: "not_started", description: "Enrichment prompts with accuracy evaluation" },
+        { name: "Operations runbook", status: "not_started", description: "Rate limit escalation, SLA breach response" },
+        { name: "Marketing & onboarding kit", status: "not_started", description: "OpenAPI docs, SDK quickstart, Postman collection" },
+      ]),
+      // data-enrichment-api examples
+      JSON.stringify([
+        { name: "Firmendaten-Anreicherung", description: "Email/domain in → company details, industry, size, tech stack" },
+        { name: "DACH-Adress-Validierung-Plus", description: "Address string in → validated, normalized, enriched" },
+        { name: "Dokument-Klassifikation", description: "PDF in → document type + confidence + extracted fields" },
+        { name: "SKR04 Kategorisierungs-API", description: "Transaction description in → SKR04 account suggestion" },
+        { name: "Sentiment-Monitor-API", description: "Review text in → sentiment, themes, urgency, priority" },
+      ]),
+      // dashboard-reporting artifacts
+      JSON.stringify([
+        { name: "Code scaffold", status: "not_started", description: "Integration-heavy package with 20+ pre-built connectors" },
+        { name: "Configuration schema", status: "not_started", description: "Integration selection, metric definitions, dashboard layout" },
+        { name: "Workflow library", status: "not_started", description: "ETL scheduling with incremental sync, metric computation" },
+        { name: "UI pattern kit", status: "not_started", description: "KPI card, time series, bar, funnel, cohort, geo map widgets" },
+        { name: "Prompt and eval package", status: "not_started", description: "Metric insight generation prompts" },
+        { name: "Operations runbook", status: "not_started", description: "Integration failure handling, data freshness monitoring" },
+        { name: "Marketing & onboarding kit", status: "not_started", description: "Integration setup wizard, sample dashboards" },
+      ]),
+      // dashboard-reporting examples
+      JSON.stringify([
+        { name: "Gastro-Deckungsbeitrags-Dashboard", description: "Inventory + POS + staff costs in one view" },
+        { name: "Baufortschritts-Cockpit", description: "Project milestones + spend + supplier delivery" },
+        { name: "Webshop-Werbekosten-Dashboard", description: "Meta + Google + internal margin in one view" },
+        { name: "Social-Media-Effectiveness-Dashboard", description: "Platform metrics + brand mentions + sentiment" },
+      ]),
+    ]);
+
   })().catch((err) => {
     global.__zecbSchemaInit = undefined;
     throw err;
