@@ -27,7 +27,7 @@ export function SettingsView({ profile, integrations, stats }: Props) {
       initial="hidden"
       animate="visible"
       variants={stagger(0.05, 0.08)}
-      className="space-y-8 max-w-4xl"
+      className="space-y-8 max-w-4xl mx-auto"
     >
       <motion.div variants={fadeUp}>
         <h1 className="font-h1 text-h1 text-primary">Settings</h1>
