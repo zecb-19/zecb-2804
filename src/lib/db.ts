@@ -455,6 +455,139 @@ export function ensureSchema(): Promise<void> {
       ON CONFLICT (slug) DO NOTHING;
     `);
 
+    // --- outreach_queue_items (§7.9, §8.10, U-O-04) -----------------------
+    // Weekly approval queue for content, propagation, and channel proposals.
+    // Items are created by Channel Agents and reviewed during Friday ritual.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS outreach_queue_items (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+        item_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        channel TEXT,
+        content_preview TEXT,
+        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+        status TEXT NOT NULL DEFAULT 'pending',
+        reviewer_note TEXT,
+        reviewed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS oqi_status_idx ON outreach_queue_items (status, item_type);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS oqi_product_idx ON outreach_queue_items (product_id);`,
+    );
+
+    // --- compliance_checks (§7.9, §8.6, §11.3) ----------------------------
+    // Hard gates for regulated channels and DSGVO obligations.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS compliance_checks (
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        required_for TEXT NOT NULL DEFAULT 'v1',
+        status TEXT NOT NULL DEFAULT 'not_started',
+        evidence_note TEXT,
+        checked_at TIMESTAMPTZ,
+        checked_by UUID,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // --- unsubscribes (§9, §8.6, A-12) ------------------------------------
+    // Holding-wide block list. Hashed email, lookup-only, no bulk export.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS unsubscribes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email_hash TEXT UNIQUE NOT NULL,
+        source_product_id UUID,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS unsub_hash_idx ON unsubscribes (email_hash);`,
+    );
+
+    // Seed compliance checks (idempotent).
+    await pool.query(`
+      INSERT INTO compliance_checks (id, category, name, description, required_for, status)
+      VALUES
+        ('dsgvo-tcf22', 'dsgvo', 'TCF 2.2 Cookie Consent',
+         'IAB Transparency & Consent Framework v2.2 implemented on every product surface.',
+         'v1', 'not_started'),
+        ('dsgvo-impressum', 'dsgvo', 'Impressum Generator',
+         'Auto-generated legal Impressum page per product with correct entity data.',
+         'v1', 'not_started'),
+        ('dsgvo-datenschutz', 'dsgvo', 'Datenschutzerklärung',
+         'Privacy policy generator compliant with DSGVO Art. 13/14.',
+         'v1', 'not_started'),
+        ('dsgvo-agb', 'dsgvo', 'AGB Template Loader',
+         'Terms of service generator per product with template-specific clauses.',
+         'v1', 'not_started'),
+        ('dsgvo-auskunft', 'dsgvo', 'Auskunftsrecht Flow',
+         'Data subject access request (DSAR) flow — export all personal data within 30 days.',
+         'v1', 'not_started'),
+        ('dsgvo-loeschung', 'dsgvo', 'Löschungsrecht Flow',
+         'Right to erasure flow — purge tenant data within 30 days, audit-logged.',
+         'v1', 'not_started'),
+        ('dsgvo-portability', 'dsgvo', 'Datenportabilität Flow',
+         'Data portability — machine-readable export of all tenant data.',
+         'v1', 'not_started'),
+        ('dsgvo-consent-ledger', 'dsgvo', 'Consent Ledger',
+         'Immutable log of every consent decision per user with timestamp and context.',
+         'v1', 'not_started'),
+        ('email-dkim-spf', 'email', 'DKIM/SPF/DMARC',
+         'Per-product sending domains verified with DKIM, SPF, and DMARC alignment.',
+         'v1', 'not_started'),
+        ('email-double-optin', 'email', 'Double Opt-In (DE)',
+         'Marketing emails require confirmed double opt-in for German recipients.',
+         'v1', 'not_started'),
+        ('email-preference-center', 'email', 'Preference Center',
+         'Granular opt-out per category. Global unsubscribe kills all marketing sends.',
+         'v1', 'not_started'),
+        ('email-unsub-holding', 'email', 'Holding-Wide Unsubscribe',
+         'Unsubscribe in product A blocks sends from product B across the holding (A-12).',
+         'v1', 'not_started'),
+        ('cold-lawyer-signoff', 'cold_email', 'Lawyer-Reviewed Framework',
+         'Signed-off legal compliance framework for cold B2B email in DACH/EU.',
+         'v2', 'not_started'),
+        ('cold-recipient-filter', 'cold_email', 'Recipient Filter',
+         'Only role-based or publicly published business addresses. No private addresses.',
+         'v2', 'not_started'),
+        ('cold-relevance-filter', 'cold_email', 'Relevance Filter (LLM Match > 0.8)',
+         'LLM-based match score > 0.8 between recipient profile and product segment.',
+         'v2', 'not_started'),
+        ('cold-frequency-cap', 'cold_email', 'Frequency Cap',
+         'Max 2 emails/recipient/product/12mo. Holding-wide: 4/recipient/12mo.',
+         'v2', 'not_started'),
+        ('cold-optout', 'cold_email', 'One-Click Opt-Out',
+         'Every cold email has one-click unsubscribe. Permanent block across all products.',
+         'v2', 'not_started'),
+        ('cold-impressum', 'cold_email', 'Impressum Footer',
+         'Full Impressum in every cold email. Truthful sender, no pretextual subjects.',
+         'v2', 'not_started'),
+        ('cold-audit-log', 'cold_email', 'Audit Log (≥3 years)',
+         'Every send logged with legal basis, match score, content hash for ≥3 years.',
+         'v2', 'not_started'),
+        ('cold-dedicated-infra', 'cold_email', 'Dedicated Sending Infrastructure',
+         'Per-product outreach subdomain with own SPF/DKIM/DMARC. Never the holding domain.',
+         'v2', 'not_started'),
+        ('content-forbidden-claims', 'content', 'Forbidden Claims Validator',
+         'Core Message validator rejects banned phrases (A-07). Test suite covers each phrase.',
+         'v1', 'not_started'),
+        ('audit-agent-runs', 'audit', 'Agent Runs Cost Ledger',
+         'Every agent_runs row carries cost_eur. Unit-economics report reconstructable (A-14).',
+         'v1', 'complete'),
+        ('audit-operator-actions', 'audit', 'Operator Action Logging',
+         'Every approval (launch, content, propagation, pattern) logged with actor/timestamp (A-15).',
+         'v1', 'complete')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+
   })().catch((err) => {
     global.__zecbSchemaInit = undefined;
     throw err;
