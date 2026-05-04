@@ -1,18 +1,31 @@
-import { SectionStub } from "@/components/dashboard/SectionStub";
+import { redirect } from "next/navigation";
 
-export default function Page() {
+import { SettingsView } from "@/components/dashboard/SettingsView";
+import { getCurrentUser } from "@/lib/auth/dal";
+import {
+  getUserProfile,
+  getIntegrationStatuses,
+  getAccountStats,
+} from "@/lib/settings/queries";
+
+export default async function Page() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  const [profile, stats] = await Promise.all([
+    getUserProfile(user.id),
+    getAccountStats(user.id),
+  ]);
+
+  if (!profile) redirect("/");
+
+  const integrations = getIntegrationStatuses();
+
   return (
-    <SectionStub
-      title="Settings"
-      blurb="Operator account, holding-wide preferences, integrations, and team. Foundation-layer integrations are required before any product can launch."
-      icon="settings"
-      bullets={[
-        "Account: name, email, password rotation, MFA enforcement.",
-        "Holding: legal name, billing entity, default region (DACH-EU first), languages.",
-        "Integrations: Stripe Connect, Postmark, SendGrid, R2, PostHog (CDP), Google Search Console, Bing Webmaster, Doppler/SOPS, Slack notifications.",
-        "Team: invite operators with roles (founder, operator, viewer); audit who approved what.",
-        "Notifications: which agent events page you, email-only digests, Slack channel routing.",
-      ]}
+    <SettingsView
+      profile={profile}
+      integrations={integrations}
+      stats={stats}
     />
   );
 }
