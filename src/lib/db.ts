@@ -362,6 +362,99 @@ export function ensureSchema(): Promise<void> {
       ]),
     ]);
 
+    // --- patterns + pattern_candidates (§7.7, §7.8) -----------------------
+    // Layer-3 horizontal building blocks. Compounding asset — every build
+    // surfaces reusable components promoted via the weekly Friday ritual.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS patterns (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        slug TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT NOT NULL,
+        version TEXT NOT NULL DEFAULT '1.0.0',
+        status TEXT NOT NULL DEFAULT 'active',
+        source_product_id UUID,
+        used_in_builds INT NOT NULL DEFAULT 0,
+        complexity TEXT NOT NULL DEFAULT 'medium',
+        tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS patterns_category_idx ON patterns (category);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS patterns_status_idx ON patterns (status);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pattern_candidates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+        pattern_name TEXT NOT NULL,
+        description TEXT,
+        reason TEXT,
+        category TEXT NOT NULL DEFAULT 'uncategorized',
+        status TEXT NOT NULL DEFAULT 'pending',
+        reviewer_note TEXT,
+        reviewed_at TIMESTAMPTZ,
+        promoted_to_pattern_id UUID,
+        flagged_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS pc_status_idx ON pattern_candidates (status);`,
+    );
+
+    // Seed V1 patterns (PRD §7.7) — idempotent.
+    await pool.query(`
+      INSERT INTO patterns (slug, name, description, category, version, status, complexity, tags)
+      VALUES
+        ('email-digest', 'Email Digest',
+         'Build a recurring email summary from a data query. Supports daily, weekly, monthly cadence with per-user timezone handling and template rendering.',
+         'reporting', '1.0.0', 'active', 'medium',
+         '["email", "scheduling", "templating"]'::jsonb),
+        ('csv-import-export', 'CSV Import / Export',
+         'Upload a file, map columns to schema, validate rows, process with progress UI. Export any dataset as CSV with streaming for large files.',
+         'data', '1.0.0', 'active', 'medium',
+         '["file-upload", "validation", "streaming"]'::jsonb),
+        ('webhook-receiver', 'Webhook Receiver',
+         'Signed inbound webhooks with replay protection, HMAC verification, idempotency keys, and dead-letter queue for failed processing.',
+         'integration', '1.0.0', 'active', 'high',
+         '["webhooks", "security", "queue"]'::jsonb),
+        ('api-poller', 'External API Poller',
+         'Rate-limited, backoff-aware, durable external API consumption with ETag/Last-Modified caching and configurable retry policies.',
+         'integration', '1.0.0', 'active', 'high',
+         '["api", "rate-limiting", "retry"]'::jsonb),
+        ('llm-extract', 'LLM Extract',
+         'Structured extraction from unstructured input with JSON Schema validation, repair pass on schema failure, and cost tracking per call.',
+         'ai', '1.0.0', 'active', 'high',
+         '["llm", "extraction", "schema-validation"]'::jsonb),
+        ('approval-queue', 'Approval Queue',
+         'Items await human review with approve/reject/edit UI, SLA countdown, assignment, and bulk actions. Foundation for all HITL gates.',
+         'workflow', '1.0.0', 'active', 'medium',
+         '["review", "hitl", "queue"]'::jsonb),
+        ('timeline-view', 'Timeline View',
+         'Chronological event log with date range filters, full-text search, status badges, pagination, and CSV/JSON export.',
+         'ui', '1.0.0', 'active', 'low',
+         '["ui", "timeline", "filtering", "export"]'::jsonb),
+        ('onboarding-wizard', 'Onboarding Wizard',
+         'Multi-step setup with progress indicator, save-and-resume, sample data for "try it now" paths, and time-to-value tracking.',
+         'ui', '1.0.0', 'active', 'medium',
+         '["onboarding", "wizard", "ttv"]'::jsonb),
+        ('scheduled-report', 'Scheduled Report',
+         'Generate PDF/CSV/HTML reports on cron schedule, deliver via email. Supports per-user scheduling, timezone, and template customization.',
+         'reporting', '1.0.0', 'active', 'medium',
+         '["reporting", "scheduling", "pdf"]'::jsonb),
+        ('slack-integration', 'Slack Integration',
+         'OAuth install flow, workspace/channel selection, formatted message delivery with Block Kit, and slash command handling.',
+         'integration', '1.0.0', 'active', 'high',
+         '["slack", "oauth", "messaging"]'::jsonb)
+      ON CONFLICT (slug) DO NOTHING;
+    `);
+
   })().catch((err) => {
     global.__zecbSchemaInit = undefined;
     throw err;

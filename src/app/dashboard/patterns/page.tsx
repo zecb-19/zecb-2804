@@ -1,18 +1,34 @@
-import { SectionStub } from "@/components/dashboard/SectionStub";
+import { redirect } from "next/navigation";
 
-export default function Page() {
+import { PatternLibraryView } from "@/components/dashboard/PatternLibraryView";
+import { getCurrentUser } from "@/lib/auth/dal";
+import { ensureSchema } from "@/lib/db";
+import {
+  listPatterns,
+  listPatternCategories,
+  listPatternCandidates,
+  getPatternStats,
+} from "@/lib/patterns/queries";
+
+export default async function Page() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+
+  await ensureSchema();
+
+  const [patterns, categories, candidates, stats] = await Promise.all([
+    listPatterns(),
+    listPatternCategories(),
+    listPatternCandidates(user.id),
+    getPatternStats(),
+  ]);
+
   return (
-    <SectionStub
-      title="Pattern Library"
-      blurb="Layer 3 — horizontal building blocks reused across templates. Pattern promotion is the single most important weekly ritual for the system's long-term moat."
-      icon="extension"
-      bullets={[
-        "V1 seed: Email Digest, CSV Import/Export, Webhook Receiver, External API Poller, LLM Extract, Approval Queue, Timeline View, Onboarding Wizard, Scheduled Report, Slack Integration.",
-        "Each pattern: stable interface, eval suite, documented cost characteristics, version history.",
-        "Source-build attribution — see which products contributed each pattern.",
-        "Friday promotion queue — Reviewer Agent flags candidates; founder approves or rejects.",
-        "Target: ~40–60 patterns by build #10, ≥ 200 by build #50.",
-      ]}
+    <PatternLibraryView
+      patterns={patterns}
+      categories={categories}
+      candidates={candidates}
+      stats={stats}
     />
   );
 }
