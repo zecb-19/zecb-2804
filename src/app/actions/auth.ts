@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 import { ensureSchema, pool } from "@/lib/db";
 import {
@@ -13,6 +14,7 @@ import {
   type AuthFormState,
 } from "@/lib/auth/definitions";
 import { createSession, deleteSession } from "@/lib/auth/session";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "@/lib/email";
 import type { ZodError } from "zod";
 
 const FIELD_KEY_SET: ReadonlySet<string> = new Set(AUTH_FIELD_KEYS);
@@ -96,6 +98,7 @@ export async function signupAction(
       { userId: id, email, name: fullName },
       { remember: true },
     );
+    sendWelcomeEmail(email, firstName).catch(() => {});
     return { ok: true, user: { id, email, name: fullName } };
   } catch (err) {
     const code = (err as { code?: string }).code;
@@ -161,4 +164,114 @@ export async function signinAction(
 export async function signoutAction(): Promise<void> {
   await deleteSession();
   redirect("/");
+}
+
+// --- Password Reset -------------------------------------------------------
+
+export type PasswordResetRequestState =
+  | { ok: true }
+  | { ok: false; message: string }
+  | undefined;
+
+export type PasswordResetState =
+  | { ok: true }
+  | { ok: false; message: string; errors?: Record<string, string[]> }
+  | undefined;
+
+export async function requestPasswordResetAction(
+  _prev: PasswordResetRequestState,
+  formData: FormData,
+): Promise<PasswordResetRequestState> {
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  if (!email) return { ok: false, message: "Please enter your email." };
+
+  try {
+    await ensureSchema();
+
+    const { rows } = await pool.query<{ id: string; name: string }>(
+      "SELECT id::text AS id, name FROM users WHERE email = $1 LIMIT 1",
+      [email],
+    );
+    const user = rows[0];
+
+    // Always return success to prevent email enumeration
+    if (!user) return { ok: true };
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1::uuid, $2, NOW() + INTERVAL '1 hour')`,
+      [user.id, tokenHash],
+    );
+
+    sendPasswordResetEmail(email, user.name, token).catch(() => {});
+    return { ok: true };
+  } catch (err) {
+    console.error("[requestPasswordResetAction] failed:", err);
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
+}
+
+export async function resetPasswordAction(
+  _prev: PasswordResetState,
+  formData: FormData,
+): Promise<PasswordResetState> {
+  const token = formData.get("token") as string;
+  const newPassword = formData.get("newPassword") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  if (!token) return { ok: false, message: "Invalid reset link." };
+  if (!newPassword || newPassword.length < 10) {
+    return {
+      ok: false,
+      message: "Please fix the errors below.",
+      errors: { newPassword: ["Password must be at least 10 characters."] },
+    };
+  }
+  if (newPassword !== confirmPassword) {
+    return {
+      ok: false,
+      message: "Please fix the errors below.",
+      errors: { confirmPassword: ["Passwords do not match."] },
+    };
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+  try {
+    await ensureSchema();
+
+    const { rows } = await pool.query<{ user_id: string }>(
+      `SELECT user_id::text AS user_id
+         FROM password_reset_tokens
+        WHERE token_hash = $1
+          AND expires_at > NOW()
+          AND used_at IS NULL
+        LIMIT 1`,
+      [tokenHash],
+    );
+    const row = rows[0];
+    if (!row) {
+      return { ok: false, message: "This reset link has expired or is invalid." };
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      "UPDATE users SET password_hash = $1 WHERE id = $2::uuid",
+      [hash, row.user_id],
+    );
+
+    await pool.query(
+      "UPDATE password_reset_tokens SET used_at = NOW() WHERE token_hash = $1",
+      [tokenHash],
+    );
+
+    return { ok: true };
+  } catch (err) {
+    console.error("[resetPasswordAction] failed:", err);
+    return { ok: false, message: "Could not reset password. Please try again." };
+  }
 }

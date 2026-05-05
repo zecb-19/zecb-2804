@@ -11,6 +11,7 @@ import {
   type CreateBuildState,
 } from "@/lib/builds/definitions";
 import { ensureSchema, pool } from "@/lib/db";
+import { sendBuildNotificationEmail } from "@/lib/email";
 
 export type ApproveBuildState =
   | { ok: true; productId: string }
@@ -251,6 +252,8 @@ export async function approveBuildAction(
       revalidatePath("/dashboard");
       revalidatePath("/dashboard/pipeline");
       revalidatePath("/dashboard/launches");
+
+      sendBuildNotificationEmail(user.email, user.name, row.slug, "launched").catch(() => {});
 
       return { ok: true, productId: row.id };
     } catch (err) {
