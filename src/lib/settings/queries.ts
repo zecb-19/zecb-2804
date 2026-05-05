@@ -14,6 +14,11 @@ export type UserProfile = {
   terms_accepted_at: string | null;
   last_login_at: string | null;
   created_at: string;
+  stripe_customer_id: string | null;
+  subscription_status: string;
+  subscription_tier: string | null;
+  subscription_id: string | null;
+  subscription_current_period_end: string | null;
 };
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
@@ -23,6 +28,11 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
             role, marketing_consent,
             terms_accepted_at::text AS terms_accepted_at,
             last_login_at::text AS last_login_at,
+            stripe_customer_id,
+            subscription_status,
+            subscription_tier,
+            subscription_id,
+            subscription_current_period_end::text AS subscription_current_period_end,
             created_at::text AS created_at
        FROM users
       WHERE id = $1::uuid

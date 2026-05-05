@@ -62,6 +62,12 @@ export function ensureSchema(): Promise<void> {
     );
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ;`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;`);
+    // Stripe billing (§6.1 #3)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'none';`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_id TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_current_period_end TIMESTAMPTZ;`);
 
     // --- products / build_specs / agent_runs ----------------------------
     // Per PRD §9 — products registry, BuildSpec history, and the central

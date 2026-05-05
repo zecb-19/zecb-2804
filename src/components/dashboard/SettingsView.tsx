@@ -9,6 +9,11 @@ import {
   type ProfileState,
   type PasswordState,
 } from "@/app/actions/settings";
+import {
+  createCheckoutAction,
+  openPortalAction,
+  type CheckoutState,
+} from "@/app/actions/billing";
 import { COUNTRIES } from "@/lib/auth/definitions";
 import type { UserProfile } from "@/lib/settings/queries";
 import type { IntegrationStatus, AccountStats } from "@/lib/settings/queries";
@@ -55,6 +60,11 @@ export function SettingsView({ profile, integrations, stats }: Props) {
       {/* Password */}
       <motion.div variants={fadeUp}>
         <PasswordSection />
+      </motion.div>
+
+      {/* Billing */}
+      <motion.div variants={fadeUp}>
+        <BillingSection profile={profile} />
       </motion.div>
 
       {/* Integrations */}
@@ -275,6 +285,130 @@ const CATEGORY_ICONS: Record<string, string> = {
   observability: "bug_report",
   support: "support_agent",
 };
+
+/* --- Billing Section ------------------------------------------------------ */
+
+const PLAN_TIERS = [
+  { id: "starter", name: "Starter", price: "€99/mo", features: ["1 project", "Build pipeline", "Email support"] },
+  { id: "growth", name: "Growth", price: "€299/mo", features: ["5 projects", "Outreach engine", "Priority support"] },
+  { id: "scale", name: "Scale", price: "€899/mo", features: ["Unlimited", "White-label", "Success manager"] },
+];
+
+function BillingSection({ profile }: { profile: UserProfile }) {
+  const [checkoutState, checkoutAction, checkoutPending] = useActionState(
+    createCheckoutAction, undefined as CheckoutState,
+  );
+  const hasSubscription = profile.subscription_status !== "none" && profile.subscription_id;
+  const activeTier = profile.subscription_tier;
+
+  return (
+    <section className="bg-white rounded-xl border border-surface-variant p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 22 }}>
+          credit_card
+        </span>
+        <h2 className="font-h3 text-h3 text-on-surface">Billing</h2>
+        {hasSubscription && (
+          <span className={
+            "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
+            (profile.subscription_status === "active"
+              ? "bg-emerald-100 text-emerald-800"
+              : profile.subscription_status === "past_due"
+                ? "bg-error-container text-on-error-container"
+                : "bg-amber-100 text-amber-800")
+          }>
+            {profile.subscription_status}
+          </span>
+        )}
+      </div>
+
+      {hasSubscription ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-surface-container-low rounded-lg px-3 py-2">
+              <div className="text-label-sm text-on-surface-variant">Plan</div>
+              <div className="font-semibold text-body-lg text-on-surface capitalize">
+                {activeTier ?? "Unknown"}
+              </div>
+            </div>
+            <div className="bg-surface-container-low rounded-lg px-3 py-2">
+              <div className="text-label-sm text-on-surface-variant">Status</div>
+              <div className="font-semibold text-body-lg text-on-surface capitalize">
+                {profile.subscription_status}
+              </div>
+            </div>
+            <div className="bg-surface-container-low rounded-lg px-3 py-2">
+              <div className="text-label-sm text-on-surface-variant">Renews</div>
+              <div className="font-semibold text-body-lg text-on-surface">
+                {profile.subscription_current_period_end
+                  ? new Date(profile.subscription_current_period_end).toLocaleDateString()
+                  : "—"}
+              </div>
+            </div>
+          </div>
+          <form action={openPortalAction}>
+            <button
+              type="submit"
+              className="px-4 py-2.5 rounded-lg border border-surface-variant text-on-surface font-semibold text-body-md hover:bg-surface-container-low inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+              Manage subscription
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-on-surface-variant text-body-md">
+            Choose a platform plan. Pricing applies to the ZECB operator console —
+            instantiated product pricing is configured separately per BuildSpec.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {PLAN_TIERS.map((tier) => (
+              <div
+                key={tier.id}
+                className={
+                  "rounded-xl border p-4 " +
+                  (tier.id === "growth"
+                    ? "border-primary bg-primary/5"
+                    : "border-surface-variant")
+                }
+              >
+                <div className="font-semibold text-body-lg text-on-surface">{tier.name}</div>
+                <div className="font-display text-2xl font-bold text-primary mt-1">{tier.price}</div>
+                <ul className="mt-3 space-y-1">
+                  {tier.features.map((f) => (
+                    <li key={f} className="text-label-sm text-on-surface-variant flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-secondary" style={{ fontSize: 14 }}>check</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <form action={checkoutAction} className="mt-3">
+                  <input type="hidden" name="tier_id" value={tier.id} />
+                  <button
+                    type="submit"
+                    disabled={checkoutPending}
+                    className={
+                      "w-full px-3 py-2 rounded-lg font-semibold text-body-md disabled:opacity-60 " +
+                      (tier.id === "growth"
+                        ? "bg-primary text-on-primary hover:opacity-90"
+                        : "border border-surface-variant text-on-surface hover:bg-surface-container-low")
+                    }
+                  >
+                    {checkoutPending ? "Loading..." : "Subscribe"}
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+          {checkoutState && !checkoutState.ok && (
+            <p className="text-error text-label-sm">{checkoutState.message}</p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
 
 function IntegrationsSection({ integrations }: { integrations: IntegrationStatus[] }) {
   const connected = integrations.filter((i) => i.connected).length;
