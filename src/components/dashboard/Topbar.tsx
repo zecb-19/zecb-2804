@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { LanguageSwitcher } from "@/lib/i18n/context";
 import { easeOut } from "./motion";
 
 const TITLES: Record<string, string> = {
@@ -83,6 +84,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
             }}
           />
         </motion.button>
+        <LanguageSwitcher />
         <motion.div {...buttonHover}>
           <Link
             href="/dashboard/buildspec"

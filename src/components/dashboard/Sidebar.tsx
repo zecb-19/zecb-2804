@@ -41,6 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "System",
     items: [
       { label: "Compliance Gates", href: "/dashboard/compliance", icon: "verified_user" },
+      { label: "Admin", href: "/dashboard/admin", icon: "admin_panel_settings" },
       { label: "Settings", href: "/dashboard/settings", icon: "settings" },
     ],
   },

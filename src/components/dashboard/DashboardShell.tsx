@@ -4,6 +4,8 @@ import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { I18nProvider } from "@/lib/i18n/context";
+
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { easeOut } from "./motion";
@@ -28,6 +30,7 @@ export function DashboardShell({ user, children }: Props) {
   }, [drawerOpen]);
 
   return (
+    <I18nProvider>
     <MotionConfig reducedMotion="user">
       <div className="min-h-screen bg-surface flex">
         {/* Desktop sidebar — sticky full-height */}
@@ -87,5 +90,6 @@ export function DashboardShell({ user, children }: Props) {
         </div>
       </div>
     </MotionConfig>
+    </I18nProvider>
   );
 }

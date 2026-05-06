@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { CookieConsent } from "@/components/CookieConsent";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,6 +29,7 @@ export default function RootLayout({
       </head>
       <body className="bg-surface-container-lowest font-body-md text-on-surface antialiased">
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

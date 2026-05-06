@@ -531,6 +531,24 @@ export function ensureSchema(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS unsub_hash_idx ON unsubscribes (email_hash);`,
     );
 
+    // --- consent_ledger (§11.3 DSGVO) --------------------------------------
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS consent_ledger (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id TEXT NOT NULL,
+        user_id UUID,
+        consent_type TEXT NOT NULL,
+        granted BOOLEAN NOT NULL,
+        categories JSONB NOT NULL DEFAULT '[]'::jsonb,
+        ip_hash TEXT,
+        user_agent TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS consent_session_idx ON consent_ledger (session_id);`,
+    );
+
     // Seed compliance checks (idempotent).
     await pool.query(`
       INSERT INTO compliance_checks (id, category, name, description, required_for, status)
