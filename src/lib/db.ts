@@ -549,6 +549,88 @@ export function ensureSchema(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS consent_session_idx ON consent_ledger (session_id);`,
     );
 
+    // --- Monitoring-SaaS runtime (§7.3, §9) --------------------------------
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS data_sources (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        config JSONB NOT NULL DEFAULT '{}'::jsonb,
+        auth_ref TEXT,
+        rate_limit_per_hour INT NOT NULL DEFAULT 60,
+        schedule_cron TEXT NOT NULL DEFAULT '0 * * * *',
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        last_fetch_at TIMESTAMPTZ,
+        last_fetch_status TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS ds_product_idx ON data_sources (product_id);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS observations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        data_source_id UUID NOT NULL REFERENCES data_sources(id) ON DELETE CASCADE,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        observed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        dimensions JSONB NOT NULL DEFAULT '{}'::jsonb,
+        measures JSONB NOT NULL DEFAULT '{}'::jsonb,
+        raw_ref TEXT,
+        fetch_duration_ms INT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS obs_ds_idx ON observations (data_source_id, observed_at DESC);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS obs_product_idx ON observations (product_id, observed_at DESC);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS alert_rules (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        description TEXT,
+        data_source_id UUID REFERENCES data_sources(id) ON DELETE CASCADE,
+        condition_type TEXT NOT NULL,
+        condition_config JSONB NOT NULL DEFAULT '{}'::jsonb,
+        notify_channels JSONB NOT NULL DEFAULT '["email"]'::jsonb,
+        throttle_minutes INT NOT NULL DEFAULT 60,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        last_triggered_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS ar_product_idx ON alert_rules (product_id);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS alerts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        rule_id UUID NOT NULL REFERENCES alert_rules(id) ON DELETE CASCADE,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        observation_id UUID REFERENCES observations(id),
+        channels JSONB NOT NULL DEFAULT '[]'::jsonb,
+        message TEXT NOT NULL,
+        context JSONB NOT NULL DEFAULT '{}'::jsonb,
+        status TEXT NOT NULL DEFAULT 'pending',
+        notified_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS alerts_product_idx ON alerts (product_id, created_at DESC);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS alerts_rule_idx ON alerts (rule_id);`,
+    );
+
     // Seed compliance checks (idempotent).
     await pool.query(`
       INSERT INTO compliance_checks (id, category, name, description, required_for, status)
