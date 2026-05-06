@@ -267,7 +267,30 @@ export class RssSource implements DataSource {
   }
 }
 
+// --- Lazy imports for additional connectors (avoid circular) ---------------
+
+function loadConnectors(): Record<string, new () => DataSource> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const extra = require("./connectors");
+  return {
+    http_api: HttpApiSource,
+    webscrape: WebscrapeSource,
+    rss: RssSource,
+    email_inbound: extra.EmailInboundSource,
+    csv_upload: extra.CsvUploadSource,
+    google_sheets: extra.GoogleSheetsSource,
+    pdf_watch: extra.PdfWatchSource,
+  };
+}
+
 // --- Factory -------------------------------------------------------------
+
+let _connectors: Record<string, new () => DataSource> | null = null;
+
+function getConnectors(): Record<string, new () => DataSource> {
+  if (!_connectors) _connectors = loadConnectors();
+  return _connectors;
+}
 
 const CONNECTORS: Record<string, new () => DataSource> = {
   http_api: HttpApiSource,
@@ -276,7 +299,8 @@ const CONNECTORS: Record<string, new () => DataSource> = {
 };
 
 export function createDataSource(kind: string): DataSource {
-  const Ctor = CONNECTORS[kind];
+  const all = getConnectors();
+  const Ctor = all[kind] ?? CONNECTORS[kind];
   if (!Ctor) throw new Error(`Unknown data source kind: ${kind}`);
   return new Ctor();
 }
