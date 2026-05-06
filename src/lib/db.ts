@@ -631,6 +631,117 @@ export function ensureSchema(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS alerts_rule_idx ON alerts (rule_id);`,
     );
 
+    // --- Outreach Engine (§8, §9) ------------------------------------------
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS core_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        version INT NOT NULL DEFAULT 1,
+        payload JSONB NOT NULL,
+        status TEXT NOT NULL DEFAULT 'draft',
+        approved_at TIMESTAMPTZ,
+        approved_by UUID,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS cm_product_idx ON core_messages (product_id, version DESC);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cdp_events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        event TEXT NOT NULL,
+        distinct_id TEXT,
+        person_id TEXT,
+        channel TEXT,
+        campaign_id TEXT,
+        creative_id TEXT,
+        utm_source TEXT,
+        utm_medium TEXT,
+        utm_campaign TEXT,
+        landing_variant_id TEXT,
+        properties JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS cdp_product_idx ON cdp_events (product_id, created_at DESC);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS cdp_event_idx ON cdp_events (event);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS email_sequences (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        sequence_type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        emails JSONB NOT NULL DEFAULT '[]'::jsonb,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS email_sequence_events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        sequence_id UUID NOT NULL REFERENCES email_sequences(id) ON DELETE CASCADE,
+        product_id UUID NOT NULL,
+        recipient_email TEXT NOT NULL,
+        email_index INT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        scheduled_at TIMESTAMPTZ NOT NULL,
+        sent_at TIMESTAMPTZ,
+        opened_at TIMESTAMPTZ,
+        clicked_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS ese_schedule_idx ON email_sequence_events (status, scheduled_at);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS content_articles (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        category TEXT NOT NULL,
+        target_keyword TEXT,
+        content TEXT,
+        word_count INT NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'draft',
+        seo_score REAL,
+        published_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS ca_product_idx ON content_articles (product_id, status);`,
+    );
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS social_posts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        platform TEXT NOT NULL,
+        content TEXT NOT NULL,
+        source_article_id UUID REFERENCES content_articles(id),
+        status TEXT NOT NULL DEFAULT 'draft',
+        scheduled_at TIMESTAMPTZ,
+        published_at TIMESTAMPTZ,
+        engagement JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS sp_product_idx ON social_posts (product_id, status);`,
+    );
+
     // Seed compliance checks (idempotent).
     await pool.query(`
       INSERT INTO compliance_checks (id, category, name, description, required_for, status)
