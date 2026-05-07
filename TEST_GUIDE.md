@@ -192,7 +192,7 @@ GOAL: Configure a product and watch it get built
 
 | # | Action | Where | Expected Result |
 |---|--------|-------|-----------------|
-| 1 | Click "BuildSpec Authoring" in sidebar | Sidebar | Opens /dashboard/buildspec |
+| 1 | Click "BuildSpec Authoring" in sidebar | Sidebar | Opens /dashboard/buildspec 
 | 2 | Fill in Product Slug (e.g., "price-tracker") | BuildSpec form | URL-safe name, lowercase |
 | 3 | Fill in Product Name (e.g., "Price Tracker Pro") | BuildSpec form | Display name |
 | 4 | Write a Tagline | BuildSpec form | Short marketing phrase |
