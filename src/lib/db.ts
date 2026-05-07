@@ -631,6 +631,31 @@ export function ensureSchema(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS alerts_rule_idx ON alerts (rule_id);`,
     );
 
+    // --- tenants (§9, §6.4 surface 2) ----------------------------------------
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tenants (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        email TEXT NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        plan TEXT NOT NULL DEFAULT 'free',
+        limits JSONB NOT NULL DEFAULT '{}'::jsonb,
+        stripe_customer_id TEXT,
+        email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+        notify_channels JSONB NOT NULL DEFAULT '["email"]'::jsonb,
+        last_login_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(product_id, email)
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS tenants_product_idx ON tenants (product_id);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS tenants_email_idx ON tenants (product_id, email);`,
+    );
+
     // --- Outreach Engine (§8, §9) ------------------------------------------
     await pool.query(`
       CREATE TABLE IF NOT EXISTS core_messages (
