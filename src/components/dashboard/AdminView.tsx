@@ -119,7 +119,7 @@ export function AdminView({ stats, users }: Props) {
                   </td>
                   <td className="py-2.5 pr-4 text-sm text-slate-900 tabular-nums">{u.products_count}</td>
                   <td className="py-2.5 text-xs text-slate-500">
-                    {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "Never"}
+                    {u.last_login_at ? new Date(u.last_login_at).toISOString().slice(0, 10) : "Never"}
                   </td>
                 </motion.tr>
               ))}

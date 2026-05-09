@@ -185,7 +185,7 @@ function RuleCard({ rule }: { rule: AlertRuleRow }) {
             {" · "}Throttle: {rule.throttle_minutes}min
             {" · "}Channels: {rule.notify_channels.join(", ")}
             {rule.last_triggered_at && (
-              <> · Last triggered: {new Date(rule.last_triggered_at).toLocaleDateString()}</>
+              <> · Last triggered: {new Date(rule.last_triggered_at).toISOString().slice(0, 10)}</>
             )}
           </div>
         </div>

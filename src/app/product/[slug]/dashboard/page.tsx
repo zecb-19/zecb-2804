@@ -86,36 +86,40 @@ export default async function TenantDashboard({
         />
       </div>
 
-      {/* Quick actions */}
-      {data.data_sources === 0 && data.alert_rules === 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-none">
-              <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 24 }}>rocket_launch</span>
+      {/* Getting started steps */}
+      {(data.data_sources === 0 || data.alert_rules === 0) && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>checklist</span>
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-slate-900 text-lg">Get started with monitoring</h3>
-              <p className="text-slate-600 mt-1">
-                Set up your first alert rule to start watching for changes. You'll receive notifications
-                when conditions you define are met.
-              </p>
-              <div className="flex flex-wrap gap-3 mt-4">
-                <Link
-                  href={`/product/${slug}/rules`}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors shadow-sm"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-                  Create your first rule
-                </Link>
-                <Link
-                  href={`/product/${slug}/timeline`}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors border border-slate-200"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>timeline</span>
-                  View timeline
-                </Link>
-              </div>
+            <div>
+              <h3 className="font-bold text-slate-900">Get started</h3>
+              <p className="text-sm text-slate-500">Complete these steps to start monitoring</p>
             </div>
+          </div>
+          <div className="space-y-1">
+            <StepItem
+              done={data.data_sources > 0}
+              label="Add a data source"
+              description="Connect an API, website, or RSS feed to monitor"
+              href={`/product/${slug}/sources`}
+              action="Add source"
+            />
+            <StepItem
+              done={data.alert_rules > 0}
+              label="Create an alert rule"
+              description="Define conditions that trigger notifications"
+              href={`/product/${slug}/rules`}
+              action="Create rule"
+            />
+            <StepItem
+              done={data.observations_total > 0}
+              label="Run your first monitoring cycle"
+              description="Fetch data from your sources and evaluate rules"
+              href={`/product/${slug}/sources`}
+              action="Run now"
+            />
           </div>
         </div>
       )}
@@ -231,6 +235,25 @@ export default async function TenantDashboard({
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function StepItem({ done, label, description, href, action }: { done: boolean; label: string; description: string; href: string; action: string }) {
+  return (
+    <div className={`flex items-center gap-4 py-3 px-3 rounded-xl ${done ? "bg-emerald-50/50" : "hover:bg-slate-50"} transition-colors`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-none ${done ? "bg-emerald-100" : "border-2 border-slate-200"}`}>
+        {done && <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 18 }}>check</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm font-medium ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{label}</div>
+        <div className="text-xs text-slate-400 mt-0.5">{description}</div>
+      </div>
+      {!done && (
+        <Link href={href} className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors flex-none">
+          {action}
+        </Link>
+      )}
     </div>
   );
 }

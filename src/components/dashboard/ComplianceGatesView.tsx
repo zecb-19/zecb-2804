@@ -124,7 +124,7 @@ export function ComplianceGatesView({ checks, summary, unsubStats }: Props) {
             <div className="text-xs text-slate-500">Last entry</div>
             <div className="font-semibold text-base text-slate-900">
               {unsubStats.last_entry_at
-                ? new Date(unsubStats.last_entry_at).toLocaleDateString()
+                ? new Date(unsubStats.last_entry_at).toISOString().slice(0, 10)
                 : "No entries yet"}
             </div>
           </div>

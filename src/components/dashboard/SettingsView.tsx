@@ -341,7 +341,7 @@ function BillingSection({ profile }: { profile: UserProfile }) {
               <div className="text-xs text-slate-500">Renews</div>
               <div className="font-semibold text-base text-slate-900">
                 {profile.subscription_current_period_end
-                  ? new Date(profile.subscription_current_period_end).toLocaleDateString()
+                  ? new Date(profile.subscription_current_period_end).toISOString().slice(0, 10)
                   : "—"}
               </div>
             </div>
@@ -656,5 +656,6 @@ function formatCost(eur: number): string {
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (!Number.isFinite(d.getTime())) return "—";
-  return d.toLocaleDateString("en", { month: "short", year: "numeric" });
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
