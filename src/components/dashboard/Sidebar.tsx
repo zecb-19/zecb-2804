@@ -81,7 +81,7 @@ export function Sidebar({ user, onNavigate }: Props) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 pb-3">
+      <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-3" style={{ scrollbarWidth: "none" }}>
         {NAV_GROUPS.map((group) => (
           <div key={group.title} className="mb-6 last:mb-0">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 px-3 mb-2">

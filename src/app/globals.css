@@ -122,6 +122,10 @@ body {
   }
 }
 
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined";
   font-weight: normal;
