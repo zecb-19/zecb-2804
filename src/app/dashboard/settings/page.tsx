@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 
 import { SettingsView } from "@/components/dashboard/SettingsView";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -10,14 +10,14 @@ import {
 
 export default async function Page() {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
+  if (!user) redirect("/auth/login");
 
   const [profile, stats] = await Promise.all([
     getUserProfile(user.id),
     getAccountStats(user.id),
   ]);
 
-  if (!profile) redirect("/");
+  if (!profile) redirect("/auth/login");
 
   const integrations = getIntegrationStatuses();
 

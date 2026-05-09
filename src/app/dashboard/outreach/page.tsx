@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { OutreachQueuesView } from "@/components/dashboard/OutreachQueuesView";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { ensureSchema } from "@/lib/db";
+import { listProductsForUser } from "@/lib/builds/queries";
 import {
   listOutreachQueueItems,
   getOutreachQueueStats,
@@ -10,14 +11,19 @@ import {
 
 export default async function Page() {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
+  if (!user) redirect("/auth/login");
 
   await ensureSchema();
 
-  const [items, stats] = await Promise.all([
+  const [items, stats, products] = await Promise.all([
     listOutreachQueueItems(user.id),
     getOutreachQueueStats(user.id),
+    listProductsForUser(user.id),
   ]);
 
-  return <OutreachQueuesView items={items} stats={stats} />;
+  const liveProducts = products
+    .filter((p) => p.status === "live")
+    .map((p) => ({ id: p.id, slug: p.slug, name: p.name }));
+
+  return <OutreachQueuesView items={items} stats={stats} products={liveProducts} />;
 }

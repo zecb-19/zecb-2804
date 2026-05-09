@@ -5,16 +5,23 @@ import { useActionState, useState } from "react";
 
 import {
   approveOutreachItemAction,
+  generateCampaignAction,
+  generateCoreMessageAction,
+  generateEmailSequenceAction,
   rejectOutreachItemAction,
+  type GenerateState,
   type OutreachActionState,
 } from "@/app/actions/outreach";
 import type { OutreachQueueItem, OutreachQueueStats } from "@/lib/outreach/queries";
 
 import { fadeUp, fadeUpSm, scaleIn, stagger } from "./motion";
 
+type ProductRef = { id: string; slug: string; name: string };
+
 type Props = {
   items: OutreachQueueItem[];
   stats: OutreachQueueStats;
+  products: ProductRef[];
 };
 
 const ITEM_TYPE_CONFIG: Record<string, { label: string; icon: string; description: string }> = {
@@ -49,8 +56,12 @@ const CHANNEL_SCOPE = [
   { channel: "Review Generation", v1: true, note: "Lifecycle-integrated" },
 ];
 
-export function OutreachQueuesView({ items, stats }: Props) {
+export function OutreachQueuesView({ items, stats, products }: Props) {
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [selectedProduct, setSelectedProduct] = useState(products[0]?.id ?? "");
+  const [coreState, coreAction, corePending] = useActionState(generateCoreMessageAction, undefined as GenerateState);
+  const [campState, campAction, campPending] = useActionState(generateCampaignAction, undefined as GenerateState);
+  const [emailState, emailAction, emailPending] = useActionState(generateEmailSequenceAction, undefined as GenerateState);
 
   const filtered = activeTab === "all"
     ? items
@@ -74,6 +85,69 @@ export function OutreachQueuesView({ items, stats }: Props) {
           feed back into the Core Message.
         </p>
       </motion.div>
+
+      {/* Generate content */}
+      {products.length > 0 && (
+        <motion.section variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>auto_awesome</span>
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-900">Generate Marketing Content</h2>
+              <p className="text-sm text-slate-500">AI creates content → it appears in the queue for your approval</p>
+            </div>
+          </div>
+
+          {products.length > 1 && (
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Product</label>
+              <select
+                value={selectedProduct}
+                onChange={(e) => setSelectedProduct(e.target.value)}
+                className="w-full max-w-xs px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.slug})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <GenerateCard
+              icon="message"
+              title="Core Message"
+              description="Pain statements, promises, CTAs, and brand voice"
+              action={coreAction}
+              state={coreState}
+              pending={corePending}
+              productId={selectedProduct}
+              color="from-blue-500 to-indigo-600"
+            />
+            <GenerateCard
+              icon="campaign"
+              title="Meta Ads Campaign"
+              description="Audience targeting, ad sets, and creative structure"
+              action={campAction}
+              state={campState}
+              pending={campPending}
+              productId={selectedProduct}
+              color="from-emerald-500 to-teal-600"
+            />
+            <GenerateCard
+              icon="mail"
+              title="Email Sequences"
+              description="Onboarding and engagement lifecycle emails"
+              action={emailAction}
+              state={emailState}
+              pending={emailPending}
+              productId={selectedProduct}
+              color="from-amber-500 to-orange-600"
+            />
+          </div>
+        </motion.section>
+      )}
 
       {/* Stats */}
       <motion.div
@@ -316,6 +390,47 @@ function ChannelScope() {
   );
 }
 
+function GenerateCard({
+  icon, title, description, action, state, pending, productId, color,
+}: {
+  icon: string; title: string; description: string;
+  action: (formData: FormData) => void;
+  state: GenerateState; pending: boolean;
+  productId: string; color: string;
+}) {
+  return (
+    <div className="border border-slate-200 rounded-2xl p-4 hover:border-slate-300 hover:shadow-sm transition-all">
+      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-3 shadow-sm`}>
+        <span className="material-symbols-outlined text-white" style={{ fontSize: 18 }}>{icon}</span>
+      </div>
+      <h3 className="font-semibold text-slate-900 text-sm">{title}</h3>
+      <p className="text-xs text-slate-500 mt-0.5 mb-3">{description}</p>
+      {state?.ok && <p className="text-xs text-emerald-600 mb-2">{state.message}</p>}
+      {state && !state.ok && <p className="text-xs text-red-500 mb-2">{state.message}</p>}
+      <form action={action}>
+        <input type="hidden" name="product_id" value={productId} />
+        <button
+          type="submit"
+          disabled={pending}
+          className="w-full px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
+        >
+          {pending ? (
+            <>
+              <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>auto_awesome</span>
+              Generate
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function StatCard({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
     <motion.div variants={scaleIn} className="bg-white rounded-2xl border border-slate-200 p-4">
@@ -323,7 +438,7 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
         <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>{icon}</span>
         <span className="text-xs text-slate-500">{label}</span>
       </div>
-      <div className="font-display text-2xl font-bold text-slate-900 leading-none">{value}</div>
+      <div className="text-2xl font-bold text-slate-900 leading-none">{value}</div>
     </motion.div>
   );
 }

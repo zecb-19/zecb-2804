@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 
 import { TemplateCatalogView } from "@/components/dashboard/TemplateCatalogView";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -7,7 +7,7 @@ import { listTemplates } from "@/lib/templates/queries";
 
 export default async function Page() {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
+  if (!user) redirect("/auth/login");
 
   await ensureSchema();
   const templates = await listTemplates();

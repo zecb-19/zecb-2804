@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 
 import { PortfolioView } from "@/components/dashboard/PortfolioView";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -10,7 +10,7 @@ import { advancePipelinesForUser } from "@/lib/builds/simulator";
 
 export default async function Page() {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
+  if (!user) redirect("/auth/login");
 
   await advancePipelinesForUser(user.id);
   const products = await listPortfolioProducts(user.id);

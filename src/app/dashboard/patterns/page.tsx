@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 
 import { PatternLibraryView } from "@/components/dashboard/PatternLibraryView";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -12,7 +12,7 @@ import {
 
 export default async function Page() {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
+  if (!user) redirect("/auth/login");
 
   await ensureSchema();
 

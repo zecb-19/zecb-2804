@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 
 import { ComplianceGatesView } from "@/components/dashboard/ComplianceGatesView";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -11,7 +11,7 @@ import {
 
 export default async function Page() {
   const user = await getCurrentUser();
-  if (!user) redirect("/");
+  if (!user) redirect("/auth/login");
 
   await ensureSchema();
 
