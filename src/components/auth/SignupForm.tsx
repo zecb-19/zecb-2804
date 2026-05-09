@@ -67,15 +67,18 @@ export function SignupForm() {
 
         <div>
           <label htmlFor="signup-email" className={labelCls}>Work email</label>
-          <input
-            id="signup-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            placeholder="you@company.com"
-            className={inputCls}
-          />
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>mail</span>
+            <input
+              id="signup-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              placeholder="you@company.com"
+              className={`${inputCls} pl-11`}
+            />
+          </div>
           <ErrorList errors={failure?.errors?.email} />
         </div>
 
@@ -163,7 +166,7 @@ export function SignupForm() {
           </label>
         </div>
 
-        <button type="submit" disabled={pending} className={submitCls}>
+        <button type="submit" disabled={pending} className="w-full mt-2 py-3.5 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white font-semibold text-sm shadow-lg shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-900/30 hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all">
           {pending ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
