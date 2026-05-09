@@ -20,7 +20,7 @@ export default async function AlertsPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Alerts</h1>
-        <p className="text-slate-900-variant mt-1">
+        <p className="text-slate-500 mt-1">
           Triggered notifications from your alert rules.
           {alerts.length > 0 && ` ${alerts.length} alerts in history.`}
         </p>
@@ -28,9 +28,9 @@ export default async function AlertsPage({
 
       {alerts.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-          <span className="material-symbols-outlined text-slate-900-variant" style={{ fontSize: 40 }}>notifications_off</span>
+          <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 40 }}>notifications_off</span>
           <h3 className="text-lg font-semibold text-slate-900 mt-3">No alerts yet</h3>
-          <p className="text-slate-900-variant mt-1 text-sm">
+          <p className="text-slate-500 mt-1 text-sm">
             Alerts appear here when your monitoring rules are triggered.
           </p>
         </div>
@@ -42,7 +42,7 @@ export default async function AlertsPage({
                 <div className="flex items-start gap-3 min-w-0">
                   <span className={
                     "material-symbols-outlined flex-none mt-0.5 " +
-                    (alert.status === "sent" ? "text-amber-500" : alert.status === "pending" ? "text-slate-900-variant" : "text-emerald-500")
+                    (alert.status === "sent" ? "text-amber-500" : alert.status === "pending" ? "text-slate-500" : "text-emerald-500")
                   } style={{ fontSize: 20 }}>
                     {alert.status === "sent" ? "warning" : alert.status === "pending" ? "schedule" : "check_circle"}
                   </span>
@@ -51,7 +51,7 @@ export default async function AlertsPage({
                       <span className="font-semibold text-sm text-slate-900">{alert.rule_name}</span>
                       <span className={
                         "px-2 py-0.5 rounded-full text-xs font-semibold " +
-                        (alert.status === "sent" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-900-variant")
+                        (alert.status === "sent" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500")
                       }>
                         {alert.status}
                       </span>
@@ -63,10 +63,10 @@ export default async function AlertsPage({
                         ))}
                       </div>
                     </div>
-                    <p className="text-slate-900-variant text-sm mt-0.5">{alert.message}</p>
+                    <p className="text-slate-500 text-sm mt-0.5">{alert.message}</p>
                   </div>
                 </div>
-                <div className="text-xs text-slate-900-variant flex-none text-right">
+                <div className="text-xs text-slate-500 flex-none text-right">
                   <div>{new Date(alert.created_at).toLocaleDateString()}</div>
                   <div>{new Date(alert.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                   {alert.notified_at && (

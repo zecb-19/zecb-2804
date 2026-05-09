@@ -24,7 +24,7 @@ export default async function TimelinePage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Timeline</h1>
-        <p className="text-slate-900-variant mt-1">
+        <p className="text-slate-500 mt-1">
           Chronological observation history across all data sources.
           {observations.length > 0 && ` Showing ${observations.length} most recent.`}
         </p>
@@ -39,7 +39,7 @@ export default async function TimelinePage({
           {sources.map((s) => {
             const count = observations.filter((o) => o.data_source_name === s.name).length;
             return (
-              <span key={s.id} className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-900-variant text-xs font-semibold">
+              <span key={s.id} className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
                 {s.name} ({count})
               </span>
             );
@@ -49,9 +49,9 @@ export default async function TimelinePage({
 
       {observations.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-          <span className="material-symbols-outlined text-slate-900-variant" style={{ fontSize: 40 }}>timeline</span>
+          <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 40 }}>timeline</span>
           <h3 className="text-lg font-semibold text-slate-900 mt-3">No observations yet</h3>
-          <p className="text-slate-900-variant mt-1 text-sm">
+          <p className="text-slate-500 mt-1 text-sm">
             Observations appear here as data sources are monitored.
           </p>
         </div>
@@ -64,11 +64,11 @@ export default async function TimelinePage({
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>visibility</span>
                     <span className="font-semibold text-sm text-slate-900">{obs.data_source_name}</span>
-                    <span className="text-xs text-slate-900-variant">
+                    <span className="text-xs text-slate-500">
                       {new Date(obs.observed_at).toLocaleString()}
                     </span>
                     {obs.fetch_duration_ms && (
-                      <span className="text-xs text-slate-900-variant">
+                      <span className="text-xs text-slate-500">
                         {obs.fetch_duration_ms}ms
                       </span>
                     )}
@@ -80,7 +80,7 @@ export default async function TimelinePage({
                       {Object.entries(obs.dimensions)
                         .filter(([k]) => !k.startsWith("_"))
                         .map(([k, v]) => (
-                          <span key={k} className="px-2 py-0.5 rounded bg-slate-50 text-xs text-slate-900-variant">
+                          <span key={k} className="px-2 py-0.5 rounded bg-slate-50 text-xs text-slate-500">
                             {k}: <span className="font-mono text-slate-900">{v}</span>
                           </span>
                         ))}

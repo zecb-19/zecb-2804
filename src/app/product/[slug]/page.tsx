@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useActionState, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -8,6 +8,9 @@ import {
   tenantSigninAction,
   type TenantAuthState,
 } from "@/app/actions/tenant-auth";
+
+const inputCls =
+  "w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-slate-900 placeholder:text-slate-400 transition-colors";
 
 export default function ProductAuth() {
   const { slug } = useParams<{ slug: string }>();
@@ -29,28 +32,34 @@ export default function ProductAuth() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="font-bold text-2xl text-slate-900">{slug}</h1>
-          <p className="text-slate-900-variant mt-1">Monitoring-SaaS</p>
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/20">
+            <span className="material-symbols-outlined text-white" style={{ fontSize: 24 }}>monitoring</span>
+          </div>
+          <h1 className="font-bold text-2xl text-slate-900 tracking-tight">{slug}</h1>
+          <p className="text-slate-500 text-sm mt-1">Monitoring-SaaS</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <div className="flex mb-6 border-b border-slate-200">
+        {/* Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-900/5 p-7">
+          {/* Tabs */}
+          <div className="flex mb-7 bg-slate-100 rounded-xl p-1">
             <button
               type="button"
               onClick={() => setMode("signin")}
-              className={"pb-2 px-4 font-semibold text-sm border-b-2 transition-colors " +
-                (mode === "signin" ? "border-primary text-slate-900" : "border-transparent text-slate-900-variant")}
+              className={"flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all " +
+                (mode === "signin" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}
             >
               Sign In
             </button>
             <button
               type="button"
               onClick={() => setMode("signup")}
-              className={"pb-2 px-4 font-semibold text-sm border-b-2 transition-colors " +
-                (mode === "signup" ? "border-primary text-slate-900" : "border-transparent text-slate-900-variant")}
+              className={"flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all " +
+                (mode === "signup" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}
             >
               Sign Up
             </button>
@@ -59,54 +68,86 @@ export default function ProductAuth() {
           {mode === "signin" ? (
             <form action={signinAction} className="space-y-4">
               <input type="hidden" name="product_slug" value={slug} />
-              <Input label="Email" name="email" type="email" />
-              <Input label="Password" name="password" type="password" />
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Email</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>mail</span>
+                  <input type="email" name="email" required placeholder="you@company.com" className={`${inputCls} pl-11`} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Password</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                  <input type="password" name="password" required placeholder="Enter your password" className={`${inputCls} pl-11`} />
+                </div>
+              </div>
               <button
                 type="submit"
                 disabled={signinPending}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 text-white font-semibold hover:opacity-90 disabled:opacity-60"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white font-semibold text-sm shadow-lg shadow-slate-900/20 hover:shadow-xl hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 disabled:shadow-none transition-all"
               >
-                {signinPending ? "Signing in..." : "Sign In"}
+                {signinPending ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Signing in...
+                  </span>
+                ) : "Sign In"}
               </button>
               {signinState && !signinState.ok && (
-                <p className="text-red-500 text-xs">{signinState.message}</p>
+                <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">{signinState.message}</div>
               )}
             </form>
           ) : (
             <form action={signupAction} className="space-y-4">
               <input type="hidden" name="product_slug" value={slug} />
-              <Input label="Name" name="name" />
-              <Input label="Email" name="email" type="email" />
-              <Input label="Password" name="password" type="password" hint="At least 8 characters" />
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Name</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>person</span>
+                  <input type="text" name="name" required placeholder="Your full name" className={`${inputCls} pl-11`} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Email</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>mail</span>
+                  <input type="email" name="email" required placeholder="you@company.com" className={`${inputCls} pl-11`} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1.5 block">Password</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                  <input type="password" name="password" required placeholder="Min. 8 characters" className={`${inputCls} pl-11`} />
+                </div>
+                <p className="text-xs text-slate-400 mt-1.5">At least 8 characters</p>
+              </div>
               <button
                 type="submit"
                 disabled={signupPending}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 text-white font-semibold hover:opacity-90 disabled:opacity-60"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white font-semibold text-sm shadow-lg shadow-slate-900/20 hover:shadow-xl hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 disabled:shadow-none transition-all"
               >
-                {signupPending ? "Creating account..." : "Create Account"}
+                {signupPending ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating account...
+                  </span>
+                ) : "Create Account"}
               </button>
               {signupState && !signupState.ok && (
-                <p className="text-red-500 text-xs">{signupState.message}</p>
+                <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">{signupState.message}</div>
               )}
             </form>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
 
-function Input({ label, name, type = "text", hint }: { label: string; name: string; type?: string; hint?: string }) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-slate-900-variant mb-1">{label}</label>
-      <input
-        type={type}
-        name={name}
-        required
-        className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
-      />
-      {hint && <p className="text-xs text-slate-900-variant mt-1">{hint}</p>}
+        {/* Trust signal */}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <span className="material-symbols-outlined text-slate-300" style={{ fontSize: 14 }}>lock</span>
+          <span className="text-xs text-slate-400">Encrypted & stored in the EU</span>
+        </div>
+      </div>
     </div>
   );
 }
