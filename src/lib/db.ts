@@ -31,6 +31,8 @@ function buildPool(): Pool {
 
 export const pool: Pool = global.__zecbPgPool ?? buildPool();
 if (!global.__zecbPgPool) global.__zecbPgPool = pool;
+// Force schema re-init on module reload so new migrations always run.
+global.__zecbSchemaInit = undefined;
 
 export function ensureSchema(): Promise<void> {
   if (global.__zecbSchemaInit) return global.__zecbSchemaInit;
@@ -390,7 +392,7 @@ export function ensureSchema(): Promise<void> {
         slug TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
         description TEXT,
-        category TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'uncategorized',
         version TEXT NOT NULL DEFAULT '1.0.0',
         status TEXT NOT NULL DEFAULT 'active',
         source_product_id UUID,
@@ -505,7 +507,7 @@ export function ensureSchema(): Promise<void> {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS compliance_checks (
         id TEXT PRIMARY KEY,
-        category TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'general',
         name TEXT NOT NULL,
         description TEXT,
         required_for TEXT NOT NULL DEFAULT 'v1',
@@ -516,7 +518,6 @@ export function ensureSchema(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-
     // --- unsubscribes (§9, §8.6, A-12) ------------------------------------
     // Holding-wide block list. Hashed email, lookup-only, no bulk export.
     await pool.query(`

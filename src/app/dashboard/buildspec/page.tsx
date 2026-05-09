@@ -28,11 +28,9 @@ export default async function Page({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-h1 text-h1 text-primary">BuildSpec Authoring</h1>
-        <p className="text-on-surface-variant mt-1.5 max-w-3xl">
-          Compose a Monitoring-SaaS BuildSpec. Schema-validated against PRD
-          Appendix B before dispatch — invalid configs return field-level
-          errors, not silent failures.
+        <h1 className="text-2xl font-bold text-slate-900">BuildSpec</h1>
+        <p className="text-slate-500 mt-1 max-w-3xl">
+          Configure your Monitoring-SaaS product. Every field is validated before the build starts.
         </p>
       </div>
       <BuildSpecForm initialSpec={initialSpec} fromLabel={fromLabel} />

@@ -16,112 +16,265 @@ export default async function TenantDashboard({
 
   await ensureSchema();
   const data = await getTenantDashboard(session.productId);
+  const firstName = session.name.split(" ")[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-h1 text-h1 text-primary">
-          Welcome, {session.name.split(" ")[0]}
-        </h1>
-        <p className="text-on-surface-variant mt-1">
-          Your monitoring overview for <span className="font-mono font-semibold">{slug}</span>
-        </p>
+    <div className="space-y-8">
+      {/* Hero greeting */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJIMjR2LTJoMTJ6bTAtNHYySDI0di0yaDEyem0wLTR2MkgyNHYtMmgxMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
+        <div className="relative">
+          <p className="text-blue-200 text-sm font-medium">{greeting}</p>
+          <h1 className="text-3xl font-bold mt-1">Welcome back, {firstName}</h1>
+          <p className="text-blue-100 mt-2 max-w-xl">
+            Your monitoring overview for <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-semibold">{slug}</span>
+          </p>
+        </div>
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Kpi label="Data Sources" value={String(data.data_sources)} icon="database" />
-        <Kpi label="Observations" value={String(data.observations_total)} icon="visibility" />
-        <Kpi label="Today" value={String(data.observations_today)} icon="today" />
-        <Kpi label="Alert Rules" value={String(data.alert_rules)} icon="rule" />
-        <Kpi label="Alerts" value={String(data.alerts_total)} icon="notifications" />
-        <Kpi label="Today" value={String(data.alerts_today)} icon="notification_important" />
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <KpiCard
+          label="Data Sources"
+          value={data.data_sources}
+          icon="database"
+          color="blue"
+          subtitle="Connected"
+          href={`/product/${slug}/settings`}
+        />
+        <KpiCard
+          label="Observations"
+          value={data.observations_total}
+          icon="visibility"
+          color="emerald"
+          subtitle={`${data.observations_today} today`}
+          href={`/product/${slug}/timeline`}
+        />
+        <KpiCard
+          label="Alert Rules"
+          value={data.alert_rules}
+          icon="tune"
+          color="violet"
+          subtitle="Active"
+          href={`/product/${slug}/rules`}
+        />
+        <KpiCard
+          label="Total Alerts"
+          value={data.alerts_total}
+          icon="notifications_active"
+          color="amber"
+          subtitle={`${data.alerts_today} today`}
+          href={`/product/${slug}/alerts`}
+        />
+        <KpiCard
+          label="Today's Data"
+          value={data.observations_today}
+          icon="today"
+          color="cyan"
+          subtitle="Observations"
+          href={`/product/${slug}/timeline`}
+        />
+        <KpiCard
+          label="Today's Alerts"
+          value={data.alerts_today}
+          icon="notification_important"
+          color="rose"
+          subtitle="Triggered"
+          href={`/product/${slug}/alerts`}
+        />
       </div>
 
-      {/* Recent observations */}
-      <section className="bg-white rounded-xl border border-surface-variant p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-h3 text-h3 text-on-surface">Recent Observations</h2>
-          <Link href={`/product/${slug}/timeline`} className="text-primary text-label-sm font-semibold hover:underline">
-            View all &rarr;
-          </Link>
-        </div>
-        {data.recent_observations.length === 0 ? (
-          <p className="text-on-surface-variant text-body-md py-4 text-center">
-            No observations yet. Data sources will populate this once monitoring runs.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {data.recent_observations.map((obs) => (
-              <div key={obs.id} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-surface-container-low">
-                <span className="text-label-sm font-mono text-on-surface-variant w-16 flex-none pt-0.5">
-                  {new Date(obs.observed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="font-semibold text-body-md text-on-surface">{obs.source_name}</span>
-                  <div className="text-label-sm text-on-surface-variant mt-0.5 flex flex-wrap gap-2">
-                    {Object.entries(obs.measures).slice(0, 4).map(([k, v]) => (
-                      <span key={k} className="px-1.5 py-0.5 rounded bg-white border border-surface-variant">
-                        {k}: <span className="font-mono">{String(v)}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
+      {/* Quick actions */}
+      {data.data_sources === 0 && data.alert_rules === 0 && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-none">
+              <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 24 }}>rocket_launch</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-slate-900 text-lg">Get started with monitoring</h3>
+              <p className="text-slate-600 mt-1">
+                Set up your first alert rule to start watching for changes. You'll receive notifications
+                when conditions you define are met.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-4">
+                <Link
+                  href={`/product/${slug}/rules`}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors shadow-sm"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+                  Create your first rule
+                </Link>
+                <Link
+                  href={`/product/${slug}/timeline`}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors border border-slate-200"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>timeline</span>
+                  View timeline
+                </Link>
               </div>
-            ))}
+            </div>
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
-      {/* Recent alerts */}
-      <section className="bg-white rounded-xl border border-surface-variant p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-h3 text-h3 text-on-surface">Recent Alerts</h2>
-          <Link href={`/product/${slug}/alerts`} className="text-primary text-label-sm font-semibold hover:underline">
-            View all &rarr;
-          </Link>
-        </div>
-        {data.recent_alerts.length === 0 ? (
-          <p className="text-on-surface-variant text-body-md py-4 text-center">
-            No alerts triggered yet.{" "}
-            <Link href={`/product/${slug}/rules`} className="text-primary hover:underline">
-              Create an alert rule
-            </Link>{" "}
-            to start monitoring.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {data.recent_alerts.map((alert) => (
-              <div key={alert.id} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-surface-container-low">
-                <span className={"material-symbols-outlined flex-none mt-0.5 " +
-                  (alert.status === "sent" ? "text-amber-500" : "text-on-surface-variant")}
-                  style={{ fontSize: 18 }}>
-                  {alert.status === "sent" ? "warning" : "notifications"}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="font-semibold text-body-md text-on-surface">{alert.rule_name}</span>
-                  <p className="text-label-sm text-on-surface-variant mt-0.5">{alert.message}</p>
-                </div>
-                <span className="text-label-sm text-on-surface-variant flex-none">
-                  {new Date(alert.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                </span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent observations */}
+        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 18 }}>visibility</span>
               </div>
-            ))}
+              <h2 className="font-bold text-slate-900">Recent Observations</h2>
+            </div>
+            <Link href={`/product/${slug}/timeline`} className="text-blue-600 text-sm font-semibold hover:text-blue-700 transition-colors">
+              View all
+            </Link>
           </div>
-        )}
-      </section>
+          <div className="p-4">
+            {data.recent_observations.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+                  <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 28 }}>visibility_off</span>
+                </div>
+                <p className="text-slate-500 mt-3 font-medium">No observations yet</p>
+                <p className="text-slate-400 text-sm mt-1">Data will appear once monitoring runs begin</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.recent_observations.map((obs) => (
+                  <div key={obs.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-none" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm text-slate-900">{obs.source_name}</span>
+                        <span className="text-xs font-mono text-slate-400">
+                          {new Date(obs.observed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {Object.entries(obs.measures).slice(0, 3).map(([k, v]) => (
+                          <span key={k} className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
+                            {k}: <span className="font-mono">{String(v)}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Recent alerts */}
+        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 18 }}>notifications_active</span>
+              </div>
+              <h2 className="font-bold text-slate-900">Recent Alerts</h2>
+            </div>
+            <Link href={`/product/${slug}/alerts`} className="text-blue-600 text-sm font-semibold hover:text-blue-700 transition-colors">
+              View all
+            </Link>
+          </div>
+          <div className="p-4">
+            {data.recent_alerts.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+                  <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 28 }}>notifications_off</span>
+                </div>
+                <p className="text-slate-500 mt-3 font-medium">No alerts triggered yet</p>
+                <p className="text-slate-400 text-sm mt-1">
+                  <Link href={`/product/${slug}/rules`} className="text-blue-600 hover:text-blue-700 font-medium">
+                    Create an alert rule
+                  </Link>{" "}
+                  to start monitoring
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.recent_alerts.map((alert) => {
+                  const isSent = alert.status === "sent";
+                  return (
+                    <div key={alert.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-none ${isSent ? "bg-amber-50" : "bg-slate-100"}`}>
+                        <span
+                          className={`material-symbols-outlined ${isSent ? "text-amber-500" : "text-slate-400"}`}
+                          style={{ fontSize: 18 }}
+                        >
+                          {isSent ? "warning" : "schedule"}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-slate-900">{alert.rule_name}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isSent ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                            {alert.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{alert.message}</p>
+                      </div>
+                      <span className="text-xs text-slate-400 flex-none whitespace-nowrap">
+                        {new Date(alert.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
-function Kpi({ label, value, icon }: { label: string; value: string; icon: string }) {
+const COLOR_MAP = {
+  blue: { bg: "bg-blue-50", icon: "text-blue-600", value: "text-blue-700", ring: "ring-blue-100" },
+  emerald: { bg: "bg-emerald-50", icon: "text-emerald-600", value: "text-emerald-700", ring: "ring-emerald-100" },
+  violet: { bg: "bg-violet-50", icon: "text-violet-600", value: "text-violet-700", ring: "ring-violet-100" },
+  amber: { bg: "bg-amber-50", icon: "text-amber-600", value: "text-amber-700", ring: "ring-amber-100" },
+  cyan: { bg: "bg-cyan-50", icon: "text-cyan-600", value: "text-cyan-700", ring: "ring-cyan-100" },
+  rose: { bg: "bg-rose-50", icon: "text-rose-600", value: "text-rose-700", ring: "ring-rose-100" },
+} as const;
+
+function KpiCard({
+  label,
+  value,
+  icon,
+  color,
+  subtitle,
+  href,
+}: {
+  label: string;
+  value: number;
+  icon: string;
+  color: keyof typeof COLOR_MAP;
+  subtitle: string;
+  href: string;
+}) {
+  const c = COLOR_MAP[color];
   return (
-    <div className="bg-white rounded-xl border border-surface-variant p-4">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 18 }}>{icon}</span>
-        <span className="text-label-sm text-on-surface-variant">{label}</span>
+    <Link href={href} className="group block">
+      <div className={`bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all ring-1 ${c.ring}`}>
+        <div className="flex items-center justify-between">
+          <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center`}>
+            <span className={`material-symbols-outlined ${c.icon}`} style={{ fontSize: 22 }}>{icon}</span>
+          </div>
+          <span className="material-symbols-outlined text-slate-300 group-hover:text-slate-400 transition-colors" style={{ fontSize: 18 }}>
+            arrow_forward
+          </span>
+        </div>
+        <div className={`text-3xl font-bold ${c.value} mt-3`}>{value}</div>
+        <div className="text-sm text-slate-500 mt-0.5">{label}</div>
+        <div className="text-xs text-slate-400 mt-0.5">{subtitle}</div>
       </div>
-      <div className="font-display text-2xl font-bold text-primary leading-none">{value}</div>
-    </div>
+    </Link>
   );
 }

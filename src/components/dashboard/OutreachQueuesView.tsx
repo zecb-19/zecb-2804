@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { useActionState, useState } from "react";
@@ -67,8 +67,8 @@ export function OutreachQueuesView({ items, stats }: Props) {
       className="space-y-6"
     >
       <motion.div variants={fadeUp}>
-        <h1 className="font-h1 text-h1 text-primary">Outreach Review Queues</h1>
-        <p className="text-on-surface-variant mt-1.5 max-w-3xl">
+        <h1 className="text-2xl font-bold text-slate-900">Outreach Review Queues</h1>
+        <p className="text-slate-500 mt-1.5 max-w-3xl">
           Weekly approval rituals that keep the Outreach Engine on-message.
           Content, propagation candidates, and channel proposals — all decisions
           feed back into the Core Message.
@@ -101,10 +101,10 @@ export function OutreachQueuesView({ items, stats }: Props) {
             type="button"
             onClick={() => setActiveTab(tab.key)}
             className={
-              "px-3 py-1.5 rounded-full text-label-sm font-semibold transition-colors " +
+              "px-3 py-1.5 rounded-full text-xs font-semibold transition-colors " +
               (activeTab === tab.key
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container text-on-surface-variant hover:bg-surface-container-low")
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-50")
             }
           >
             {tab.label}
@@ -116,13 +116,13 @@ export function OutreachQueuesView({ items, stats }: Props) {
       {pendingItems.length === 0 && reviewedItems.length === 0 ? (
         <motion.div
           variants={scaleIn}
-          className="bg-white rounded-xl border border-surface-variant p-8 text-center"
+          className="bg-white rounded-2xl border border-slate-200 p-8 text-center"
         >
-          <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 40 }}>
+          <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 40 }}>
             inbox
           </span>
-          <h3 className="font-h3 text-h3 text-on-surface mt-3">Queue is empty</h3>
-          <p className="text-on-surface-variant mt-1.5 max-w-md mx-auto text-body-md">
+          <h3 className="text-lg font-semibold text-slate-900 mt-3">Queue is empty</h3>
+          <p className="text-slate-500 mt-1.5 max-w-md mx-auto text-sm">
             Content drafts, propagation candidates, and channel proposals will
             appear here once the Outreach Engine channels are live and generating
             content. The Friday batch review will surface all pending items.
@@ -135,7 +135,7 @@ export function OutreachQueuesView({ items, stats }: Props) {
           ))}
           {reviewedItems.length > 0 && (
             <div className="pt-4">
-              <div className="text-label-sm font-semibold text-on-surface-variant mb-2">
+              <div className="text-xs font-semibold text-slate-500 mb-2">
                 Recently reviewed
               </div>
               {reviewedItems.map((item) => (
@@ -154,12 +154,12 @@ export function OutreachQueuesView({ items, stats }: Props) {
       {/* Propagation loop description */}
       <motion.div
         variants={fadeUp}
-        className="bg-secondary-fixed/30 rounded-lg p-4 border border-secondary/20"
+        className="bg-blue-50/30 rounded-2xl p-4 border border-secondary/20"
       >
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-secondary flex-none" style={{ fontSize: 20 }}>sync_alt</span>
-          <div className="text-body-md text-on-surface-variant">
-            <span className="font-semibold text-on-surface">Message Propagation Loop (PRD §8.10):</span>{" "}
+          <span className="material-symbols-outlined text-blue-600 flex-none" style={{ fontSize: 20 }}>sync_alt</span>
+          <div className="text-sm text-slate-500">
+            <span className="font-semibold text-slate-900">Message Propagation Loop (PRD §8.10):</span>{" "}
             Weekly cron computes top-N performers per channel → propagation
             candidates appear here for approval. Top ad headline → LP H1 → email
             subject. Top SEO article → LinkedIn + X + newsletter. Top email
@@ -191,36 +191,36 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
     <motion.div
       variants={fadeUpSm}
       className={
-        "bg-white rounded-xl border p-4 " +
-        (isPending ? "border-amber-200" : "border-surface-variant opacity-70")
+        "bg-white rounded-2xl border p-4 " +
+        (isPending ? "border-amber-200" : "border-slate-200 opacity-70")
       }
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="material-symbols-outlined text-secondary" style={{ fontSize: 18 }}>
+            <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>
               {typeCfg.icon}
             </span>
-            <span className="font-semibold text-body-md text-on-surface">{item.title}</span>
-            <span className="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-label-sm">
+            <span className="font-semibold text-sm text-slate-900">{item.title}</span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs">
               {typeCfg.label}
             </span>
             {item.channel && (
-              <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-secondary text-label-sm">
+              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs">
                 {item.channel}
               </span>
             )}
             {item.product_slug && (
-              <span className="text-label-sm text-on-surface-variant font-mono">
+              <span className="text-xs text-slate-500 font-mono">
                 {item.product_slug}
               </span>
             )}
           </div>
           {item.description && (
-            <p className="text-label-sm text-on-surface-variant mt-1">{item.description}</p>
+            <p className="text-xs text-slate-500 mt-1">{item.description}</p>
           )}
           {item.content_preview && (
-            <div className="mt-2 p-2 bg-surface-container-low rounded text-body-md text-on-surface line-clamp-3">
+            <div className="mt-2 p-2 bg-slate-50 rounded text-sm text-slate-900 line-clamp-3">
               {item.content_preview}
             </div>
           )}
@@ -233,7 +233,7 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
               <button
                 type="submit"
                 disabled={anyPending}
-                className="px-3 py-1.5 rounded-lg bg-primary text-on-primary text-label-sm font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-1"
+                className="px-3 py-1.5 rounded-2xl bg-slate-900 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-1"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
                 Approve
@@ -244,7 +244,7 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
               <button
                 type="submit"
                 disabled={anyPending}
-                className="px-3 py-1.5 rounded-lg border border-surface-variant text-on-surface-variant text-label-sm font-semibold hover:bg-surface-container-low disabled:opacity-60 inline-flex items-center gap-1"
+                className="px-3 py-1.5 rounded-2xl border border-slate-200 text-slate-500 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60 inline-flex items-center gap-1"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
                 Reject
@@ -254,8 +254,8 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
         )}
         {!isPending && (
           <span className={
-            "px-2 py-0.5 rounded-full text-label-sm font-semibold flex-none " +
-            (item.status === "approved" ? "bg-emerald-100 text-emerald-800" : "bg-surface-container text-on-surface-variant")
+            "px-2 py-0.5 rounded-full text-xs font-semibold flex-none " +
+            (item.status === "approved" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500")
           }>
             {item.status}
           </span>
@@ -263,10 +263,10 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
       </div>
 
       {(approveState && !approveState.ok) && (
-        <p className="text-error text-label-sm mt-1">{approveState.message}</p>
+        <p className="text-red-500 text-xs mt-1">{approveState.message}</p>
       )}
       {(rejectState && !rejectState.ok) && (
-        <p className="text-error text-label-sm mt-1">{rejectState.message}</p>
+        <p className="text-red-500 text-xs mt-1">{rejectState.message}</p>
       )}
     </motion.div>
   );
@@ -276,36 +276,36 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
 
 function ChannelScope() {
   return (
-    <section className="bg-white rounded-xl border border-surface-variant p-5">
+    <section className="bg-white rounded-2xl border border-slate-200 p-5">
       <div className="flex items-center gap-2 mb-4">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 22 }}>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>
           checklist
         </span>
-        <h2 className="font-h3 text-h3 text-on-surface">V1 Outreach Scope (PRD §8.13)</h2>
+        <h2 className="text-lg font-semibold text-slate-900">V1 Outreach Scope (PRD §8.13)</h2>
       </div>
       <div className="space-y-1.5">
         {CHANNEL_SCOPE.map((ch) => (
           <div
             key={ch.channel}
-            className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-container-low"
+            className="flex items-center justify-between px-3 py-2 rounded-2xl bg-slate-50"
           >
             <div className="flex items-center gap-2">
               <span
-                className={"material-symbols-outlined " + (ch.v1 ? "text-emerald-500" : "text-on-surface-variant")}
+                className={"material-symbols-outlined " + (ch.v1 ? "text-emerald-500" : "text-slate-500")}
                 style={{ fontSize: 18 }}
               >
                 {ch.v1 ? "check_circle" : "block"}
               </span>
-              <span className="text-body-md text-on-surface">{ch.channel}</span>
+              <span className="text-sm text-slate-900">{ch.channel}</span>
             </div>
             <div className="flex items-center gap-2 flex-none">
               <span className={
-                "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
-                (ch.v1 ? "bg-emerald-100 text-emerald-800" : "bg-surface-container text-on-surface-variant")
+                "px-2 py-0.5 rounded-full text-xs font-semibold " +
+                (ch.v1 ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500")
               }>
                 {ch.v1 ? "V1 IN" : "V1 OUT"}
               </span>
-              <span className="text-label-sm text-on-surface-variant max-w-[200px] truncate">
+              <span className="text-xs text-slate-500 max-w-[200px] truncate">
                 {ch.note}
               </span>
             </div>
@@ -318,12 +318,12 @@ function ChannelScope() {
 
 function StatCard({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
-    <motion.div variants={scaleIn} className="bg-white rounded-xl border border-surface-variant p-4">
+    <motion.div variants={scaleIn} className="bg-white rounded-2xl border border-slate-200 p-4">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 18 }}>{icon}</span>
-        <span className="text-label-sm text-on-surface-variant">{label}</span>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>{icon}</span>
+        <span className="text-xs text-slate-500">{label}</span>
       </div>
-      <div className="font-display text-2xl font-bold text-primary leading-none">{value}</div>
+      <div className="font-display text-2xl font-bold text-slate-900 leading-none">{value}</div>
     </motion.div>
   );
 }

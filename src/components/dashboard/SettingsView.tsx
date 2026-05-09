@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { useActionState, useState } from "react";
@@ -35,8 +35,8 @@ export function SettingsView({ profile, integrations, stats }: Props) {
       className="space-y-8 max-w-4xl mx-auto"
     >
       <motion.div variants={fadeUp}>
-        <h1 className="font-h1 text-h1 text-primary">Settings</h1>
-        <p className="text-on-surface-variant mt-1.5">
+        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+        <p className="text-slate-500 mt-1.5">
           Account, holding preferences, and Foundation-layer integrations.
         </p>
       </motion.div>
@@ -95,12 +95,12 @@ function ProfileSection({ profile }: { profile: UserProfile }) {
   const errors = (state && !state.ok ? state.errors : undefined) ?? {};
 
   return (
-    <section className="bg-white rounded-xl border border-surface-variant p-6">
+    <section className="bg-white rounded-2xl border border-slate-200 p-6">
       <div className="flex items-center gap-2 mb-5">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 22 }}>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>
           person
         </span>
-        <h2 className="font-h3 text-h3 text-on-surface">Profile</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
       </div>
 
       <form action={action} className="space-y-4">
@@ -130,14 +130,14 @@ function ProfileSection({ profile }: { profile: UserProfile }) {
             error={errors.company}
           />
           <div>
-            <label className="block text-label-sm font-semibold text-on-surface-variant mb-1">
+            <label className="block text-xs font-semibold text-slate-500 mb-1">
               Country
             </label>
             <select
               name="country"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full rounded-lg border border-surface-variant px-3 py-2.5 text-body-md text-on-surface bg-white focus:outline-none focus:border-primary"
+              className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:border-primary"
             >
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -150,16 +150,16 @@ function ProfileSection({ profile }: { profile: UserProfile }) {
         </div>
 
         <div>
-          <label className="block text-label-sm font-semibold text-on-surface-variant mb-1">
+          <label className="block text-xs font-semibold text-slate-500 mb-1">
             Email
           </label>
           <input
             type="email"
             value={profile.email}
             disabled
-            className="w-full rounded-lg border border-surface-variant px-3 py-2.5 text-body-md text-on-surface-variant bg-surface-container-low cursor-not-allowed"
+            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm text-slate-500 bg-slate-50 cursor-not-allowed"
           />
-          <p className="text-label-sm text-on-surface-variant mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Email changes are not supported yet.
           </p>
         </div>
@@ -168,7 +168,7 @@ function ProfileSection({ profile }: { profile: UserProfile }) {
           <button
             type="submit"
             disabled={pending}
-            className="px-4 py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
+            className="px-4 py-2.5 rounded-2xl bg-slate-900 text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               {pending ? "hourglass_top" : "save"}
@@ -176,13 +176,13 @@ function ProfileSection({ profile }: { profile: UserProfile }) {
             {pending ? "Saving..." : "Save changes"}
           </button>
           {state?.ok === true && (
-            <span className="text-emerald-600 text-body-md font-medium inline-flex items-center gap-1">
+            <span className="text-emerald-600 text-sm font-medium inline-flex items-center gap-1">
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>
               Profile updated
             </span>
           )}
           {state && !state.ok && !state.errors && (
-            <span className="text-error text-body-md">{state.message}</span>
+            <span className="text-red-500 text-sm">{state.message}</span>
           )}
         </div>
       </form>
@@ -205,12 +205,12 @@ function PasswordSection() {
   const succeeded = state?.ok === true;
 
   return (
-    <section className="bg-white rounded-xl border border-surface-variant p-6">
+    <section className="bg-white rounded-2xl border border-slate-200 p-6">
       <div className="flex items-center gap-2 mb-5">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 22 }}>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>
           lock
         </span>
-        <h2 className="font-h3 text-h3 text-on-surface">Password</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Password</h2>
       </div>
 
       <form action={action} className="space-y-4 max-w-md">
@@ -244,7 +244,7 @@ function PasswordSection() {
           <button
             type="submit"
             disabled={pending}
-            className="px-4 py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
+            className="px-4 py-2.5 rounded-2xl bg-slate-900 text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               {pending ? "hourglass_top" : "lock_reset"}
@@ -252,13 +252,13 @@ function PasswordSection() {
             {pending ? "Changing..." : "Change password"}
           </button>
           {succeeded && (
-            <span className="text-emerald-600 text-body-md font-medium inline-flex items-center gap-1">
+            <span className="text-emerald-600 text-sm font-medium inline-flex items-center gap-1">
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>
               Password changed
             </span>
           )}
           {state && !state.ok && !state.errors && (
-            <span className="text-error text-body-md">{state.message}</span>
+            <span className="text-red-500 text-sm">{state.message}</span>
           )}
         </div>
       </form>
@@ -302,19 +302,19 @@ function BillingSection({ profile }: { profile: UserProfile }) {
   const activeTier = profile.subscription_tier;
 
   return (
-    <section className="bg-white rounded-xl border border-surface-variant p-6">
+    <section className="bg-white rounded-2xl border border-slate-200 p-6">
       <div className="flex items-center gap-2 mb-5">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 22 }}>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>
           credit_card
         </span>
-        <h2 className="font-h3 text-h3 text-on-surface">Billing</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Billing</h2>
         {hasSubscription && (
           <span className={
-            "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
+            "px-2 py-0.5 rounded-full text-xs font-semibold " +
             (profile.subscription_status === "active"
               ? "bg-emerald-100 text-emerald-800"
               : profile.subscription_status === "past_due"
-                ? "bg-error-container text-on-error-container"
+                ? "bg-red-50 text-red-700"
                 : "bg-amber-100 text-amber-800")
           }>
             {profile.subscription_status}
@@ -325,21 +325,21 @@ function BillingSection({ profile }: { profile: UserProfile }) {
       {hasSubscription ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-surface-container-low rounded-lg px-3 py-2">
-              <div className="text-label-sm text-on-surface-variant">Plan</div>
-              <div className="font-semibold text-body-lg text-on-surface capitalize">
+            <div className="bg-slate-50 rounded-2xl px-3 py-2">
+              <div className="text-xs text-slate-500">Plan</div>
+              <div className="font-semibold text-base text-slate-900 capitalize">
                 {activeTier ?? "Unknown"}
               </div>
             </div>
-            <div className="bg-surface-container-low rounded-lg px-3 py-2">
-              <div className="text-label-sm text-on-surface-variant">Status</div>
-              <div className="font-semibold text-body-lg text-on-surface capitalize">
+            <div className="bg-slate-50 rounded-2xl px-3 py-2">
+              <div className="text-xs text-slate-500">Status</div>
+              <div className="font-semibold text-base text-slate-900 capitalize">
                 {profile.subscription_status}
               </div>
             </div>
-            <div className="bg-surface-container-low rounded-lg px-3 py-2">
-              <div className="text-label-sm text-on-surface-variant">Renews</div>
-              <div className="font-semibold text-body-lg text-on-surface">
+            <div className="bg-slate-50 rounded-2xl px-3 py-2">
+              <div className="text-xs text-slate-500">Renews</div>
+              <div className="font-semibold text-base text-slate-900">
                 {profile.subscription_current_period_end
                   ? new Date(profile.subscription_current_period_end).toLocaleDateString()
                   : "—"}
@@ -349,7 +349,7 @@ function BillingSection({ profile }: { profile: UserProfile }) {
           <form action={openPortalAction}>
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-lg border border-surface-variant text-on-surface font-semibold text-body-md hover:bg-surface-container-low inline-flex items-center gap-2"
+              className="px-4 py-2.5 rounded-2xl border border-slate-200 text-slate-900 font-semibold text-sm hover:bg-slate-50 inline-flex items-center gap-2"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
               Manage subscription
@@ -358,7 +358,7 @@ function BillingSection({ profile }: { profile: UserProfile }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-on-surface-variant text-body-md">
+          <p className="text-slate-500 text-sm">
             Choose a platform plan. Pricing applies to the ZECB operator console —
             instantiated product pricing is configured separately per BuildSpec.
           </p>
@@ -367,18 +367,18 @@ function BillingSection({ profile }: { profile: UserProfile }) {
               <div
                 key={tier.id}
                 className={
-                  "rounded-xl border p-4 " +
+                  "rounded-2xl border p-4 " +
                   (tier.id === "growth"
-                    ? "border-primary bg-primary/5"
-                    : "border-surface-variant")
+                    ? "border-primary bg-slate-900/5"
+                    : "border-slate-200")
                 }
               >
-                <div className="font-semibold text-body-lg text-on-surface">{tier.name}</div>
-                <div className="font-display text-2xl font-bold text-primary mt-1">{tier.price}</div>
+                <div className="font-semibold text-base text-slate-900">{tier.name}</div>
+                <div className="font-display text-2xl font-bold text-slate-900 mt-1">{tier.price}</div>
                 <ul className="mt-3 space-y-1">
                   {tier.features.map((f) => (
-                    <li key={f} className="text-label-sm text-on-surface-variant flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-secondary" style={{ fontSize: 14 }}>check</span>
+                    <li key={f} className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 14 }}>check</span>
                       {f}
                     </li>
                   ))}
@@ -389,10 +389,10 @@ function BillingSection({ profile }: { profile: UserProfile }) {
                     type="submit"
                     disabled={checkoutPending}
                     className={
-                      "w-full px-3 py-2 rounded-lg font-semibold text-body-md disabled:opacity-60 " +
+                      "w-full px-3 py-2 rounded-2xl font-semibold text-sm disabled:opacity-60 " +
                       (tier.id === "growth"
-                        ? "bg-primary text-on-primary hover:opacity-90"
-                        : "border border-surface-variant text-on-surface hover:bg-surface-container-low")
+                        ? "bg-slate-900 text-white hover:opacity-90"
+                        : "border border-slate-200 text-slate-900 hover:bg-slate-50")
                     }
                   >
                     {checkoutPending ? "Loading..." : "Subscribe"}
@@ -402,7 +402,7 @@ function BillingSection({ profile }: { profile: UserProfile }) {
             ))}
           </div>
           {checkoutState && !checkoutState.ok && (
-            <p className="text-error text-label-sm">{checkoutState.message}</p>
+            <p className="text-red-500 text-xs">{checkoutState.message}</p>
           )}
         </div>
       )}
@@ -421,17 +421,17 @@ function IntegrationsSection({ integrations }: { integrations: IntegrationStatus
   }
 
   return (
-    <section className="bg-white rounded-xl border border-surface-variant p-6">
+    <section className="bg-white rounded-2xl border border-slate-200 p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-secondary" style={{ fontSize: 22 }}>
+          <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>
             extension
           </span>
-          <h2 className="font-h3 text-h3 text-on-surface">Foundation Integrations</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Foundation Integrations</h2>
         </div>
         <div className="flex items-center gap-2">
           <span className={
-            "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
+            "px-2 py-0.5 rounded-full text-xs font-semibold " +
             (requiredConnected === required
               ? "bg-emerald-100 text-emerald-800"
               : "bg-amber-100 text-amber-800")
@@ -439,16 +439,16 @@ function IntegrationsSection({ integrations }: { integrations: IntegrationStatus
             {connected} / {integrations.length} connected
           </span>
           {requiredConnected < required && (
-            <span className="px-2 py-0.5 rounded-full bg-error-container text-on-error-container text-label-sm font-semibold">
+            <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
               {required - requiredConnected} required missing
             </span>
           )}
         </div>
       </div>
 
-      <p className="text-on-surface-variant text-body-md mb-5">
+      <p className="text-slate-500 text-sm mb-5">
         These Foundation-layer services must be connected before any product can
-        launch. Configure keys in <code className="px-1 py-0.5 bg-surface-container-low rounded text-label-sm font-mono">.env.local</code> and
+        launch. Configure keys in <code className="px-1 py-0.5 bg-slate-50 rounded text-xs font-mono">.env.local</code> and
         restart the server.
       </p>
 
@@ -461,10 +461,10 @@ function IntegrationsSection({ integrations }: { integrations: IntegrationStatus
         {Object.entries(grouped).map(([category, items]) => (
           <motion.div key={category} variants={fadeUpSm}>
             <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>
+              <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 18 }}>
                 {CATEGORY_ICONS[category] ?? "settings"}
               </span>
-              <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 {CATEGORY_LABELS[category] ?? category}
               </span>
             </div>
@@ -472,31 +472,31 @@ function IntegrationsSection({ integrations }: { integrations: IntegrationStatus
               {items.map((item) => (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-surface-container-low"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-2xl bg-slate-50"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span
                       className={
                         "material-symbols-outlined " +
-                        (item.connected ? "text-emerald-500" : "text-on-surface-variant")
+                        (item.connected ? "text-emerald-500" : "text-slate-500")
                       }
                       style={{ fontSize: 18 }}
                     >
                       {item.connected ? "check_circle" : "radio_button_unchecked"}
                     </span>
-                    <span className="text-body-md text-on-surface truncate">
+                    <span className="text-sm text-slate-900 truncate">
                       {item.name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-none">
                     {item.required && (
-                      <span className="text-label-sm text-on-surface-variant">required</span>
+                      <span className="text-xs text-slate-500">required</span>
                     )}
                     <span className={
-                      "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
+                      "px-2 py-0.5 rounded-full text-xs font-semibold " +
                       (item.connected
                         ? "bg-emerald-100 text-emerald-800"
-                        : "bg-surface-container text-on-surface-variant")
+                        : "bg-slate-100 text-slate-500")
                     }>
                       {item.connected ? "Connected" : "Not connected"}
                     </span>
@@ -517,18 +517,18 @@ function DangerSection({ email }: { email: string }) {
   const [showDelete, setShowDelete] = useState(false);
 
   return (
-    <section className="bg-white rounded-xl border border-error/30 p-6">
+    <section className="bg-white rounded-2xl border border-error/30 p-6">
       <div className="flex items-center gap-2 mb-4">
-        <span className="material-symbols-outlined text-error" style={{ fontSize: 22 }}>
+        <span className="material-symbols-outlined text-red-500" style={{ fontSize: 22 }}>
           warning
         </span>
-        <h2 className="font-h3 text-h3 text-error">Danger Zone</h2>
+        <h2 className="text-lg font-semibold text-red-500">Danger Zone</h2>
       </div>
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <div className="text-body-md font-semibold text-on-surface">Delete account</div>
-          <div className="text-label-sm text-on-surface-variant">
+          <div className="text-sm font-semibold text-slate-900">Delete account</div>
+          <div className="text-xs text-slate-500">
             Permanently delete your operator account and all associated data.
             This cannot be undone.
           </div>
@@ -536,7 +536,7 @@ function DangerSection({ email }: { email: string }) {
         <button
           type="button"
           onClick={() => setShowDelete((v) => !v)}
-          className="px-4 py-2 rounded-lg border border-error text-error font-semibold text-body-md hover:bg-error/5 flex-none"
+          className="px-4 py-2 rounded-2xl border border-error text-red-500 font-semibold text-sm hover:bg-red-500/5 flex-none"
         >
           Delete account
         </button>
@@ -546,9 +546,9 @@ function DangerSection({ email }: { email: string }) {
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-4 bg-error-container/30 rounded-lg border border-error/20"
+          className="mt-4 p-4 bg-red-50/30 rounded-2xl border border-error/20"
         >
-          <p className="text-body-md text-on-surface mb-3">
+          <p className="text-sm text-slate-900 mb-3">
             Account deletion is not yet implemented. To delete your account
             ({email}), contact support. Per PRD §11.7, all platform data is
             retained for 3 years for compliance.
@@ -556,7 +556,7 @@ function DangerSection({ email }: { email: string }) {
           <button
             type="button"
             onClick={() => setShowDelete(false)}
-            className="text-on-surface-variant text-body-md hover:underline"
+            className="text-slate-500 text-sm hover:underline"
           >
             Close
           </button>
@@ -587,7 +587,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-label-sm font-semibold text-on-surface-variant mb-1">
+      <label className="block text-xs font-semibold text-slate-500 mb-1">
         {label}
       </label>
       <input
@@ -596,12 +596,12 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={
-          "w-full rounded-lg border px-3 py-2.5 text-body-md text-on-surface bg-white focus:outline-none focus:border-primary " +
-          (error ? "border-error" : "border-surface-variant")
+          "w-full rounded-2xl border px-3 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:border-primary " +
+          (error ? "border-error" : "border-slate-200")
         }
       />
       {hint && !error && (
-        <p className="text-label-sm text-on-surface-variant mt-1">{hint}</p>
+        <p className="text-xs text-slate-500 mt-1">{hint}</p>
       )}
       {error && <FieldError messages={error} />}
     </div>
@@ -612,7 +612,7 @@ function FieldError({ messages }: { messages: string[] }) {
   return (
     <div className="mt-1 space-y-0.5">
       {messages.map((m) => (
-        <p key={m} className="text-label-sm text-error">{m}</p>
+        <p key={m} className="text-xs text-red-500">{m}</p>
       ))}
     </div>
   );
@@ -632,18 +632,18 @@ function StatCard({
   return (
     <motion.div
       variants={scaleIn}
-      className="bg-white rounded-xl border border-surface-variant p-4"
+      className="bg-white rounded-2xl border border-slate-200 p-4"
     >
       <div className="flex items-center gap-2 mb-2">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 18 }}>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>
           {icon}
         </span>
-        <span className="text-label-sm text-on-surface-variant">{label}</span>
+        <span className="text-xs text-slate-500">{label}</span>
       </div>
-      <div className="font-display text-2xl font-bold text-primary leading-none">
+      <div className="font-display text-2xl font-bold text-slate-900 leading-none">
         {value}
       </div>
-      <div className="text-label-sm text-on-surface-variant mt-1">{sub}</div>
+      <div className="text-xs text-slate-500 mt-1">{sub}</div>
     </motion.div>
   );
 }

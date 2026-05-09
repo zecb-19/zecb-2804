@@ -337,6 +337,50 @@ export async function listLaunchReviewsForUser(
   return results;
 }
 
+export type OnboardingProgress = {
+  hasIdeas: boolean;
+  hasApprovedIdea: boolean;
+  hasProduct: boolean;
+  hasLiveProduct: boolean;
+  ideaCount: number;
+  productCount: number;
+  liveCount: number;
+};
+
+export async function getOnboardingProgress(
+  userId: string,
+): Promise<OnboardingProgress> {
+  const [ideas, products] = await Promise.all([
+    pool.query<{ total: string; approved: string }>(
+      `SELECT COUNT(*)::text AS total,
+              COUNT(*) FILTER (WHERE status IN ('approved','promoted'))::text AS approved
+         FROM market_signal_reports WHERE owner_user_id = $1::uuid`,
+      [userId],
+    ),
+    pool.query<{ total: string; live: string }>(
+      `SELECT COUNT(*)::text AS total,
+              COUNT(*) FILTER (WHERE status = 'live')::text AS live
+         FROM products WHERE owner_user_id = $1::uuid`,
+      [userId],
+    ),
+  ]);
+  const i = ideas.rows[0];
+  const p = products.rows[0];
+  const ideaCount = Number(i?.total ?? 0);
+  const approvedCount = Number(i?.approved ?? 0);
+  const productCount = Number(p?.total ?? 0);
+  const liveCount = Number(p?.live ?? 0);
+  return {
+    hasIdeas: ideaCount > 0,
+    hasApprovedIdea: approvedCount > 0,
+    hasProduct: productCount > 0,
+    hasLiveProduct: liveCount > 0,
+    ideaCount,
+    productCount,
+    liveCount,
+  };
+}
+
 export async function countProductsByStatus(
   userId: string,
 ): Promise<{ building: number; live: number; paused: number; killed: number }> {

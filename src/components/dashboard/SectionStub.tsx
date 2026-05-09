@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 
@@ -25,19 +25,19 @@ export function SectionStub({
       className="space-y-6"
     >
       <motion.div variants={fadeUp}>
-        <h1 className="font-h1 text-h1 text-primary">{title}</h1>
-        <p className="text-on-surface-variant mt-1.5 max-w-3xl">{blurb}</p>
+        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+        <p className="text-slate-500 mt-1.5 max-w-3xl">{blurb}</p>
       </motion.div>
 
       <motion.div
         variants={scaleIn}
-        className="bg-white rounded-xl border border-surface-variant p-6 lg:p-8"
+        className="bg-white rounded-2xl border border-slate-200 p-6 lg:p-8"
       >
         <div className="flex items-start gap-5">
           <motion.div
             whileHover={{ rotate: 6, scale: 1.06 }}
             transition={{ type: "spring", stiffness: 280, damping: 18 }}
-            className="bg-secondary-fixed text-secondary rounded-xl p-3 flex-none"
+            className="bg-blue-50 text-blue-600 rounded-2xl p-3 flex-none"
           >
             <span className="material-symbols-outlined" style={{ fontSize: 28 }}>
               {icon}
@@ -45,14 +45,14 @@ export function SectionStub({
           </motion.div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-label-sm font-semibold">
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
                 In active build
               </span>
-              <span className="text-label-sm text-on-surface-variant">
+              <span className="text-xs text-slate-500">
                 V1 roadmap
               </span>
             </div>
-            <h2 className="font-h3 text-h3 text-on-surface mt-2">
+            <h2 className="text-lg font-semibold text-slate-900 mt-2">
               Planned capabilities for this surface
             </h2>
             <motion.ul
@@ -65,10 +65,10 @@ export function SectionStub({
                 <motion.li
                   key={b}
                   variants={fadeUpSm}
-                  className="flex gap-2 text-body-md text-on-surface-variant"
+                  className="flex gap-2 text-sm text-slate-500"
                 >
                   <span
-                    className="material-symbols-outlined text-secondary flex-none mt-0.5"
+                    className="material-symbols-outlined text-blue-600 flex-none mt-0.5"
                     style={{ fontSize: 18 }}
                   >
                     check_circle

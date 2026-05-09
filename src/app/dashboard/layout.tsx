@@ -10,7 +10,7 @@ export default async function DashboardLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/");
+    redirect("/auth/login");
   }
   return (
     <DashboardShell user={{ name: user.name, email: user.email }}>

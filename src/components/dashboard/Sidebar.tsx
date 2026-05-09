@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 
 import { signoutAction } from "@/app/actions/auth";
-import { fadeIn, slideRight, stagger } from "./motion";
 
 type NavItem = { label: string; href: string; icon: string };
 type NavGroup = { title: string; items: NavItem[] };
@@ -15,18 +14,18 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Build",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-      { label: "Idea Inbox", href: "/dashboard/inbox", icon: "inbox" },
-      { label: "BuildSpec Authoring", href: "/dashboard/buildspec", icon: "edit_document" },
-      { label: "Build Pipeline", href: "/dashboard/pipeline", icon: "rocket_launch" },
-      { label: "Launch Approval", href: "/dashboard/launches", icon: "check_circle" },
+      { label: "Dashboard", href: "/dashboard", icon: "space_dashboard" },
+      { label: "Idea Inbox", href: "/dashboard/inbox", icon: "auto_awesome" },
+      { label: "BuildSpec", href: "/dashboard/buildspec", icon: "edit_note" },
+      { label: "Pipeline", href: "/dashboard/pipeline", icon: "rocket_launch" },
+      { label: "Launches", href: "/dashboard/launches", icon: "check_circle" },
     ],
   },
   {
     title: "Operate",
     items: [
-      { label: "Portfolio Control", href: "/dashboard/portfolio", icon: "monitoring" },
-      { label: "Outreach Queues", href: "/dashboard/outreach", icon: "campaign" },
+      { label: "Portfolio", href: "/dashboard/portfolio", icon: "monitoring" },
+      { label: "Outreach", href: "/dashboard/outreach", icon: "campaign" },
       { label: "Audit Trail", href: "/dashboard/audit", icon: "fact_check" },
     ],
   },
@@ -40,7 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "System",
     items: [
-      { label: "Compliance Gates", href: "/dashboard/compliance", icon: "verified_user" },
+      { label: "Compliance", href: "/dashboard/compliance", icon: "verified_user" },
       { label: "Admin", href: "/dashboard/admin", icon: "admin_panel_settings" },
       { label: "Settings", href: "/dashboard/settings", icon: "settings" },
     ],
@@ -70,125 +69,89 @@ export function Sidebar({ user, onNavigate }: Props) {
     .toUpperCase();
 
   return (
-    <motion.aside
-      initial="hidden"
-      animate="visible"
-      variants={stagger(0.04, 0.04)}
-      className="h-full w-64 flex flex-col bg-white border-r border-surface-variant"
-    >
-      <motion.div
-        variants={fadeIn}
-        className="px-5 py-4 border-b border-surface-variant flex items-center gap-2.5 flex-none"
-      >
-        <motion.div
-          whileHover={{ rotate: -6, scale: 1.05 }}
-          transition={{ type: "spring", stiffness: 320, damping: 16 }}
-          className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center"
-        >
-          <span
-            className="material-symbols-outlined text-on-primary"
-            style={{ fontSize: 20 }}
-          >
-            bolt
-          </span>
-        </motion.div>
-        <Link
-          href="/dashboard"
-          className="font-bold text-primary tracking-tight text-body-lg"
-        >
-          Zero-Employee
+    <aside className="h-full w-[260px] flex flex-col bg-slate-950">
+      {/* Logo */}
+      <div className="px-5 py-5 flex items-center gap-3 flex-none">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>bolt</span>
+        </div>
+        <Link href="/dashboard" className="font-bold text-white tracking-tight text-lg">
+          ZECB
         </Link>
-      </motion.div>
+      </div>
 
-      <nav className="flex-1 overflow-y-auto p-3">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 pb-3">
         {NAV_GROUPS.map((group) => (
-          <motion.div
-            key={group.title}
-            variants={stagger(0, 0.03)}
-            className="mb-5 last:mb-0"
-          >
-            <motion.div
-              variants={fadeIn}
-              className="text-label-sm font-semibold uppercase tracking-wider text-on-surface-variant px-3 mb-2"
-            >
+          <div key={group.title} className="mb-6 last:mb-0">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 px-3 mb-2">
               {group.title}
-            </motion.div>
+            </div>
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const active = isActive(item.href);
                 return (
-                  <motion.li key={item.href} variants={slideRight}>
+                  <li key={item.href}>
                     <Link
                       href={item.href}
                       onClick={onNavigate}
                       className={
-                        "relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-md font-medium " +
+                        "relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all " +
                         (active
-                          ? "text-on-primary"
-                          : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors")
+                          ? "text-white"
+                          : "text-slate-400 hover:text-white hover:bg-white/5")
                       }
                     >
                       {active && (
                         <motion.span
                           layoutId={ACTIVE_PILL}
-                          className="absolute inset-0 bg-primary rounded-lg"
-                          transition={{
-                            type: "spring",
-                            stiffness: 380,
-                            damping: 32,
-                          }}
+                          className="absolute inset-0 bg-white/10 rounded-xl border border-white/5"
+                          transition={{ type: "spring", stiffness: 380, damping: 32 }}
                           aria-hidden
                         />
                       )}
                       <span
-                        className="material-symbols-outlined flex-none relative z-10"
+                        className={`material-symbols-outlined flex-none relative z-10 ${active ? "text-blue-400" : ""}`}
                         style={{ fontSize: 20 }}
                       >
                         {item.icon}
                       </span>
-                      <span className="truncate relative z-10">
-                        {item.label}
-                      </span>
+                      <span className="truncate relative z-10">{item.label}</span>
+                      {active && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-blue-400" aria-hidden />
+                      )}
                     </Link>
-                  </motion.li>
+                  </li>
                 );
               })}
             </ul>
-          </motion.div>
+          </div>
         ))}
       </nav>
 
-      <motion.div
-        variants={fadeIn}
-        className="border-t border-surface-variant p-3 flex-none"
-      >
-        <div className="px-2 py-1.5 flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center font-semibold text-body-md flex-none">
+      {/* User section */}
+      <div className="border-t border-white/5 p-3 flex-none">
+        <div className="px-2 py-2 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center font-semibold text-xs flex-none">
             {initials || "?"}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-body-md font-semibold text-on-surface truncate">
+            <div className="text-sm font-medium text-white truncate">
               {user.name || "Operator"}
             </div>
-            <div className="text-label-sm text-on-surface-variant truncate">
-              {user.email}
-            </div>
+            <div className="text-xs text-slate-500 truncate">{user.email}</div>
           </div>
         </div>
-        <motion.button
+        <button
           type="button"
           disabled={signingOut}
           onClick={() => startSignout(() => signoutAction())}
-          whileHover={{ x: 2 }}
-          transition={{ duration: 0.2 }}
-          className="mt-2 w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-error text-body-md font-medium transition-colors disabled:opacity-60"
+          className="mt-1 w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-white/5 text-sm font-medium transition-colors disabled:opacity-50"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-            logout
-          </span>
-          {signingOut ? "Signing out…" : "Sign out"}
-        </motion.button>
-      </motion.div>
-    </motion.aside>
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>logout</span>
+          {signingOut ? "Signing out..." : "Sign out"}
+        </button>
+      </div>
+    </aside>
   );
 }

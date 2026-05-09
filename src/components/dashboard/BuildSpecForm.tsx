@@ -25,12 +25,12 @@ import {
 import { fadeUp, stagger } from "./motion";
 
 const inputCls =
-  "w-full px-3 py-2.5 rounded-lg bg-surface-container-low border border-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-body-md";
+  "w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-slate-900 placeholder:text-slate-400 transition-colors";
 
 const labelCls =
-  "text-label-sm font-semibold text-on-surface mb-1.5 block";
+  "text-sm font-medium text-slate-700 mb-1.5 block";
 
-const helpCls = "text-label-sm text-on-surface-variant mt-1";
+const helpCls = "text-xs text-slate-400 mt-1";
 
 const initialState: CreateBuildState = undefined;
 
@@ -200,7 +200,7 @@ export function BuildSpecForm({
       {fromLabel ? (
         <motion.div
           variants={fadeUp}
-          className="px-4 py-3 rounded-lg bg-secondary-fixed/60 text-secondary text-body-md flex items-center gap-2"
+          className="px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-sm flex items-center gap-2"
         >
           <span
             className="material-symbols-outlined"
@@ -215,7 +215,7 @@ export function BuildSpecForm({
       {failure?.message ? (
         <motion.div
           variants={fadeUp}
-          className="px-4 py-3 rounded-lg bg-error-container text-on-error-container text-body-md"
+          className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm"
         >
           {failure.message}
         </motion.div>
@@ -330,17 +330,17 @@ export function BuildSpecForm({
           {spec.data_sources.map((ds, idx) => (
             <div
               key={idx}
-              className="border border-surface-variant rounded-lg p-4 bg-surface-container-low/40"
+              className="border border-slate-200 rounded-xl p-4 bg-slate-50/50"
             >
               <div className="flex items-center justify-between mb-3 gap-3">
-                <span className="text-label-sm font-semibold text-on-surface">
+                <span className="text-sm font-semibold text-slate-700">
                   Source {idx + 1}
                 </span>
                 {spec.data_sources.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeDataSource(idx)}
-                    className="text-label-sm text-error hover:underline"
+                    className="text-xs text-red-500 hover:underline"
                   >
                     Remove
                   </button>
@@ -430,9 +430,9 @@ export function BuildSpecForm({
                   onChange={(e) =>
                     updateDataSource(idx, { auth_required: e.target.checked })
                   }
-                  className="h-4 w-4 rounded border-surface-variant accent-primary"
+                  className="h-4 w-4 rounded border-slate-300 accent-slate-900"
                 />
-                <span className="text-body-md text-on-surface-variant">
+                <span className="text-sm text-slate-500">
                   Authentication required (credentials configured later)
                 </span>
               </label>
@@ -441,13 +441,13 @@ export function BuildSpecForm({
           <button
             type="button"
             onClick={addDataSource}
-            className="w-full border border-dashed border-surface-variant rounded-lg py-3 text-label-sm font-semibold text-secondary hover:bg-surface-container-low/40 transition-colors"
+            className="w-full border border-dashed border-slate-300 rounded-xl py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50/50 hover:border-blue-300 transition-colors"
           >
             + Add another data source
           </button>
         </div>
         {failure?.errors?.data_sources?.map((e) => (
-          <p key={e} className="text-error text-label-sm mt-2">
+          <p key={e} className="text-red-500 text-xs mt-2">
             {e}
           </p>
         ))}
@@ -467,7 +467,7 @@ export function BuildSpecForm({
           onToggle={(k) => togglePrimitive(k as AlertKey)}
         />
         {failure?.errors?.alert_primitives?.map((e) => (
-          <p key={e} className="text-error text-label-sm mt-2">
+          <p key={e} className="text-red-500 text-xs mt-2">
             {e}
           </p>
         ))}
@@ -487,7 +487,7 @@ export function BuildSpecForm({
           onToggle={(k) => toggleChannel(k as ChannelKey)}
         />
         {failure?.errors?.notification_channels?.map((e) => (
-          <p key={e} className="text-error text-label-sm mt-2">
+          <p key={e} className="text-red-500 text-xs mt-2">
             {e}
           </p>
         ))}
@@ -502,17 +502,17 @@ export function BuildSpecForm({
           {spec.pricing_tiers.map((t, idx) => (
             <div
               key={idx}
-              className="border border-surface-variant rounded-lg p-4 bg-surface-container-low/40"
+              className="border border-slate-200 rounded-xl p-4 bg-slate-50/50"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-label-sm font-semibold text-on-surface">
+                <span className="text-sm font-semibold text-slate-700">
                   Tier {idx + 1}
                 </span>
                 {spec.pricing_tiers.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeTier(idx)}
-                    className="text-label-sm text-error hover:underline"
+                    className="text-xs text-red-500 hover:underline"
                   >
                     Remove
                   </button>
@@ -593,7 +593,7 @@ export function BuildSpecForm({
             <button
               type="button"
               onClick={addTier}
-              className="w-full border border-dashed border-surface-variant rounded-lg py-3 text-label-sm font-semibold text-secondary hover:bg-surface-container-low/40 transition-colors"
+              className="w-full border border-dashed border-slate-300 rounded-xl py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50/50 hover:border-blue-300 transition-colors"
             >
               + Add pricing tier
             </button>
@@ -624,10 +624,10 @@ export function BuildSpecForm({
               <label
                 key={m}
                 className={
-                  "flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none transition-colors " +
+                  "flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer select-none transition-all " +
                   (spec.onboarding.mode === m
-                    ? "border-primary bg-secondary-fixed/40"
-                    : "border-surface-variant hover:bg-surface-container-low/40")
+                    ? "border-blue-300 bg-blue-50 text-blue-700"
+                    : "border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700")
                 }
               >
                 <input
@@ -641,9 +641,9 @@ export function BuildSpecForm({
                       onboarding: { mode: m },
                     }))
                   }
-                  className="h-4 w-4 accent-primary"
+                  className="h-4 w-4 accent-slate-900"
                 />
-                <span className="text-body-md">{ONBOARDING_LABELS[m]}</span>
+                <span className="text-sm">{ONBOARDING_LABELS[m]}</span>
               </label>
             ))}
           </div>
@@ -653,11 +653,11 @@ export function BuildSpecForm({
       {/* Submit */}
       <motion.div
         variants={fadeUp}
-        className="bg-white rounded-xl border border-surface-variant p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
         <div>
-          <h3 className="font-h3 text-h3 text-primary">Dispatch to Build Orchestrator</h3>
-          <p className="text-label-sm text-on-surface-variant mt-1 max-w-2xl">
+          <h3 className="font-bold text-slate-900 text-lg">Dispatch to Build Orchestrator</h3>
+          <p className="text-sm text-slate-500 mt-1 max-w-2xl">
             Step 1 (Schema validation) starts immediately. Steps 2–11 run
             autonomously. You'll be paged at step 11 (Launch approval) — no DNS
             cutover happens without your sign-off.
@@ -667,14 +667,14 @@ export function BuildSpecForm({
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
-            className="px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-low font-semibold text-body-md"
+            className="px-4 py-2.5 rounded-xl text-slate-500 hover:bg-slate-100 font-semibold text-sm transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={pending}
-            className="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             <span
               className="material-symbols-outlined"
@@ -704,14 +704,12 @@ function FormCard({
   return (
     <motion.section
       variants={fadeUp}
-      className="bg-white rounded-xl border border-surface-variant p-6"
+      className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6"
     >
       <header className="mb-4">
-        <h3 className="font-h3 text-h3 text-primary">{title}</h3>
+        <h3 className="font-bold text-slate-900 text-lg">{title}</h3>
         {description ? (
-          <p className="text-label-sm text-on-surface-variant mt-1">
-            {description}
-          </p>
+          <p className="text-sm text-slate-500 mt-1">{description}</p>
         ) : null}
       </header>
       {children}
@@ -737,7 +735,7 @@ function Field({
       {help ? <p className={helpCls}>{help}</p> : null}
       {errors?.length
         ? errors.map((e) => (
-            <p key={e} className="text-error text-label-sm mt-1">
+            <p key={e} className="text-red-500 text-xs mt-1">
               {e}
             </p>
           ))
@@ -758,7 +756,7 @@ function ColorField({
   return (
     <label className="block">
       <span className={labelCls}>{label}</span>
-      <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-surface-container-low border border-surface-variant focus-within:ring-2 focus-within:ring-primary/30">
+      <div className="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-slate-50 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500/20">
         <input
           type="color"
           value={value}
@@ -769,7 +767,7 @@ function ColorField({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-transparent outline-none text-body-md font-mono"
+          className="flex-1 bg-transparent outline-none text-sm font-mono"
         />
       </div>
     </label>
@@ -787,7 +785,7 @@ function NumField({
 }) {
   return (
     <label className="block">
-      <span className="text-label-sm text-on-surface-variant mb-1 block">
+      <span className="text-xs text-slate-500 mb-1 block">
         {label}
       </span>
       <input
@@ -818,19 +816,19 @@ function CheckboxGrid<K extends string>({
           <label
             key={i.key}
             className={
-              "flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none transition-colors " +
+              "flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer select-none transition-all " +
               (on
-                ? "border-primary bg-secondary-fixed/40"
-                : "border-surface-variant hover:bg-surface-container-low/40")
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700")
             }
           >
             <input
               type="checkbox"
               checked={on}
               onChange={() => onToggle(i.key)}
-              className="h-4 w-4 rounded border-surface-variant accent-primary"
+              className="h-4 w-4 rounded border-slate-300 accent-slate-900"
             />
-            <span className="text-body-md">{i.label}</span>
+            <span className="text-sm">{i.label}</span>
           </label>
         );
       })}

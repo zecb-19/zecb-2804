@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Component, type ReactNode } from "react";
 
@@ -30,21 +30,21 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="min-h-[200px] flex items-center justify-center p-8">
             <div className="text-center">
               <span
-                className="material-symbols-outlined text-error"
+                className="material-symbols-outlined text-red-500"
                 style={{ fontSize: 40 }}
               >
                 error
               </span>
-              <h2 className="font-h3 text-h3 text-on-surface mt-3">
+              <h2 className="text-lg font-semibold text-slate-900 mt-3">
                 Something went wrong
               </h2>
-              <p className="text-on-surface-variant mt-1 text-body-md">
+              <p className="text-slate-900-variant mt-1 text-sm">
                 {this.state.error?.message || "An unexpected error occurred."}
               </p>
               <button
                 type="button"
                 onClick={() => this.setState({ hasError: false, error: null })}
-                className="mt-4 px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90"
+                className="mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold text-sm hover:opacity-90"
               >
                 Try again
               </button>

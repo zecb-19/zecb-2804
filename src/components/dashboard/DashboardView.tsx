@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { PIPELINE_STEPS } from "@/lib/builds/definitions";
-import type { AgentRunRow, ProductRow } from "@/lib/builds/queries";
+import type { AgentRunRow, OnboardingProgress, ProductRow } from "@/lib/builds/queries";
 
 import {
   cardHover,
@@ -30,6 +30,7 @@ type Props = {
   statusCounts: StatusCounts;
   pendingApprovals: ProductRow[];
   monthlyOpexEur: number;
+  onboarding: OnboardingProgress;
 };
 
 type Kpi = {
@@ -37,16 +38,9 @@ type Kpi = {
   value: string;
   trend: string;
   icon: string;
+  color: string;
   trendTone: "neutral" | "good" | "warn";
 };
-
-const OUTREACH_PLACEHOLDER = [
-  { label: "CAC (7d, multi-touch)", value: "—", delta: "no campaigns yet", tone: "neutral" as const },
-  { label: "Top creative CTR", value: "—", delta: "awaiting first creative", tone: "neutral" as const },
-  { label: "Frequency cap", value: "0 / 25", delta: "impressions / wk", tone: "neutral" as const },
-  { label: "Active campaigns", value: "0", delta: "Meta Ads + LinkedIn", tone: "neutral" as const },
-];
-
 
 export function DashboardView({
   firstName,
@@ -55,56 +49,50 @@ export function DashboardView({
   statusCounts,
   pendingApprovals,
   monthlyOpexEur,
+  onboarding,
 }: Props) {
   const opexPct = Math.min(100, (monthlyOpexEur / 15_000) * 100);
   const opexFmt =
     monthlyOpexEur < 1
       ? `€${monthlyOpexEur.toFixed(4)}`
-      : `€${monthlyOpexEur.toLocaleString("en", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`;
+      : `€${monthlyOpexEur.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const greeting = "Welcome back";
+
+  const isNewUser = !onboarding.hasIdeas && !onboarding.hasProduct;
+  const showChecklist = !onboarding.hasLiveProduct;
 
   const kpis: Kpi[] = [
     {
       label: "Live products",
       value: String(statusCounts.live),
-      trend:
-        statusCounts.live === 0
-          ? "ship your first one"
-          : `${statusCounts.live === 1 ? "1 live" : `${statusCounts.live} live`}`,
+      trend: statusCounts.live === 0 ? "ship your first one" : `${statusCounts.live} live`,
       icon: "rocket_launch",
+      color: "bg-emerald-50 text-emerald-600",
       trendTone: statusCounts.live > 0 ? "good" : "neutral",
     },
     {
       label: "Build queue",
       value: String(statusCounts.building),
-      trend:
-        statusCounts.building === 0
-          ? "queue empty"
-          : statusCounts.building === 1
-            ? "1 in flight"
-            : `${statusCounts.building} in flight`,
+      trend: statusCounts.building === 0 ? "queue empty" : `${statusCounts.building} in flight`,
       icon: "settings_suggest",
+      color: "bg-blue-50 text-blue-600",
       trendTone: "neutral",
     },
     {
       label: "Monthly opex",
       value: opexFmt,
-      trend: `of €15,000 cap (${opexPct.toFixed(1)}%)`,
+      trend: `of €15k cap (${opexPct.toFixed(1)}%)`,
       icon: "payments",
+      color: "bg-violet-50 text-violet-600",
       trendTone: opexPct > 80 ? "warn" : "neutral",
     },
     {
       label: "Pending approvals",
       value: String(pendingApprovals.length),
-      trend:
-        pendingApprovals.length === 0
-          ? "all caught up"
-          : pendingApprovals.length === 1
-            ? "needs your action"
-            : "need your action",
+      trend: pendingApprovals.length === 0 ? "all caught up" : "needs your action",
       icon: "task_alt",
+      color: "bg-amber-50 text-amber-600",
       trendTone: pendingApprovals.length > 0 ? "warn" : "good",
     },
   ];
@@ -116,28 +104,99 @@ export function DashboardView({
       variants={stagger(0.05, 0.08)}
       className="space-y-8"
     >
-      {/* Greeting + system status */}
-      <motion.div
-        variants={fadeUp}
-        className="flex flex-col sm:flex-row sm:items-end justify-between gap-3"
-      >
-        <div>
-          <h2 className="font-h1 text-h1 text-primary">
-            Welcome back, {firstName}
-          </h2>
-          <p className="text-on-surface-variant mt-1.5 max-w-2xl">
-            Your portfolio at a glance — pending approvals, active builds, and
-            outreach signal. Approvals first; everything else compounds.
-          </p>
+      {/* Hero greeting */}
+      <motion.div variants={fadeUp} className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.12),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(139,92,246,0.08),transparent_60%)]" />
+        <div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">
+              {greeting}, {firstName}
+            </h2>
+            <p className="text-slate-400 mt-2 max-w-xl">
+              {isNewUser
+                ? "Ready to launch your first product? Follow the steps below to get started."
+                : "Your portfolio at a glance — approvals first, everything else compounds."}
+            </p>
+          </div>
+          <div className="text-sm text-slate-500 flex items-center gap-2 flex-none">
+            <motion.span
+              className="inline-block w-2 h-2 rounded-full bg-emerald-500"
+              animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            All systems nominal
+          </div>
         </div>
-        <div className="text-label-sm text-on-surface-variant flex items-center gap-2 flex-none">
-          <motion.span
-            className="inline-block w-2 h-2 rounded-full bg-emerald-500"
-            animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-          />
-          All systems nominal · DACH-EU
-        </div>
+      </motion.div>
+
+      {/* Getting started checklist — shown until first live product */}
+      {showChecklist && (
+        <motion.section variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>checklist</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900">Getting Started</h3>
+              <p className="text-sm text-slate-500">Complete these steps to launch your first product</p>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <ChecklistItem
+              done={onboarding.hasIdeas}
+              label="Generate business ideas"
+              description="Let the AI create 3 validated ideas for you"
+              href="/dashboard/inbox"
+              actionLabel="Generate ideas"
+            />
+            <ChecklistItem
+              done={onboarding.hasApprovedIdea}
+              label="Approve and promote an idea"
+              description="Review ideas and promote your favorite to a BuildSpec"
+              href="/dashboard/inbox"
+              actionLabel="Review ideas"
+            />
+            <ChecklistItem
+              done={onboarding.hasProduct}
+              label="Configure and build your product"
+              description="Fill in the BuildSpec form and dispatch the build"
+              href="/dashboard/buildspec"
+              actionLabel="Create BuildSpec"
+            />
+            <ChecklistItem
+              done={onboarding.hasLiveProduct}
+              label="Approve the launch"
+              description="Review the completed build and go live"
+              href="/dashboard/pipeline"
+              actionLabel="View pipeline"
+            />
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-blue-500 rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${([onboarding.hasIdeas, onboarding.hasApprovedIdea, onboarding.hasProduct, onboarding.hasLiveProduct].filter(Boolean).length / 4) * 100}%` }}
+                  transition={{ duration: 0.8, ease: easeOut }}
+                />
+              </div>
+              <span className="text-sm font-medium text-slate-500">
+                {[onboarding.hasIdeas, onboarding.hasApprovedIdea, onboarding.hasProduct, onboarding.hasLiveProduct].filter(Boolean).length}/4
+              </span>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* Quick actions */}
+      <motion.div variants={stagger(0.05, 0.06)} className="flex flex-wrap gap-3">
+        <QuickAction href="/dashboard/inbox" icon="auto_awesome" label="Generate Ideas" />
+        <QuickAction href="/dashboard/buildspec" icon="add_circle" label="New Build" />
+        <QuickAction href="/dashboard/pipeline" icon="rocket_launch" label="Pipeline" />
+        <QuickAction href="/dashboard/audit" icon="fact_check" label="Audit Trail" />
+        <QuickAction href="/dashboard/compliance" icon="verified_user" label="Compliance" />
       </motion.div>
 
       {/* KPI cards */}
@@ -150,69 +209,37 @@ export function DashboardView({
             key={k.label}
             variants={scaleIn}
             {...cardHover}
-            className="bg-white rounded-xl border border-surface-variant p-5 hover:border-primary/40 hover:shadow-md transition-shadow cursor-default"
+            className="bg-white rounded-2xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-md transition-all cursor-default"
           >
             <div className="flex items-start justify-between">
-              <motion.div
-                whileHover={{ rotate: 6, scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 280, damping: 18 }}
-                className="w-10 h-10 rounded-lg bg-secondary-fixed text-secondary flex items-center justify-center"
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 22 }}
-                >
-                  {k.icon}
-                </span>
-              </motion.div>
-              <span className="text-label-sm text-on-surface-variant">
-                {k.label}
-              </span>
+              <div className={`w-10 h-10 rounded-xl ${k.color} flex items-center justify-center`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>{k.icon}</span>
+              </div>
+              <span className="text-xs text-slate-400 font-medium">{k.label}</span>
             </div>
-            <div className="font-display text-3xl font-bold text-primary mt-3 leading-none">
-              {k.value}
-            </div>
-            <div
-              className={
-                k.trendTone === "good"
-                  ? "text-label-sm text-emerald-600 mt-1.5"
-                  : k.trendTone === "warn"
-                    ? "text-label-sm text-error mt-1.5"
-                    : "text-label-sm text-on-surface-variant mt-1.5"
-              }
-            >
+            <div className="font-bold text-3xl text-slate-900 mt-3 leading-none">{k.value}</div>
+            <div className={
+              "text-xs mt-1.5 " +
+              (k.trendTone === "good" ? "text-emerald-600" : k.trendTone === "warn" ? "text-red-500" : "text-slate-400")
+            }>
               {k.trend}
             </div>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Active builds + outreach snapshot */}
-      <motion.div
-        variants={stagger(0, 0.1)}
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-      >
-        <motion.section
-          variants={fadeUp}
-          className="bg-white rounded-xl border border-surface-variant p-6"
-        >
+      {/* Active builds + Pending approvals */}
+      <motion.div variants={stagger(0, 0.1)} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.section variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="font-h3 text-h3 text-primary">Active builds</h3>
-              <p className="text-label-sm text-on-surface-variant">
-                Live state across the 11-step pipeline
-              </p>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>settings_suggest</span>
+              </div>
+              <h3 className="font-bold text-slate-900">Active Builds</h3>
             </div>
-            <Link
-              href="/dashboard/buildspec"
-              className="text-secondary text-label-sm font-semibold hover:underline flex-none flex items-center gap-1"
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 16 }}
-              >
-                add
-              </span>
+            <Link href="/dashboard/buildspec" className="text-blue-600 text-sm font-semibold hover:text-blue-700 flex items-center gap-1">
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
               New
             </Link>
           </div>
@@ -220,53 +247,37 @@ export function DashboardView({
             <EmptyBlock
               icon="rocket_launch"
               title="No builds in flight"
-              body="Compose a Monitoring-SaaS BuildSpec to get the Build Orchestrator started."
+              body="Create a BuildSpec to get the Build Orchestrator started."
               ctaLabel="Start a build"
               ctaHref="/dashboard/buildspec"
             />
           ) : (
-            <motion.ul
-              initial="hidden"
-              animate="visible"
-              variants={stagger(0.2, 0.1)}
-              className="space-y-5"
-            >
+            <motion.ul initial="hidden" animate="visible" variants={stagger(0.2, 0.1)} className="space-y-4">
               {activeBuilds.map((b) => {
                 const pct = (b.build_step / b.build_total_steps) * 100;
-                const stepLabel =
-                  b.current_step_label ??
-                  PIPELINE_STEPS[b.build_step - 1] ??
-                  "Unknown";
+                const stepLabel = b.current_step_label ?? PIPELINE_STEPS[b.build_step - 1] ?? "Unknown";
                 return (
                   <motion.li key={b.id} variants={fadeUpSm}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="font-mono text-body-md text-on-surface truncate">
-                          {b.slug}
+                    <Link href="/dashboard/pipeline" className="block hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="font-mono text-sm text-slate-900 truncate">{b.slug}</div>
+                          <div className="text-xs text-slate-500 truncate">{b.template} · {stepLabel}</div>
                         </div>
-                        <div className="text-label-sm text-on-surface-variant truncate">
-                          {b.template} · {stepLabel}
-                        </div>
+                        <div className="text-xs text-slate-400 flex-none">ETA ≤72h</div>
                       </div>
-                      <div className="text-label-sm text-on-surface-variant flex-none">
-                        ETA ≤72h
+                      <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-blue-500 rounded-full"
+                          initial={{ width: "0%" }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.9, ease: easeOut, delay: 0.45 }}
+                        />
                       </div>
-                    </div>
-                    <div className="mt-2 h-1.5 bg-surface-variant rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-secondary"
-                        initial={{ width: "0%" }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{
-                          duration: 0.9,
-                          ease: easeOut,
-                          delay: 0.45,
-                        }}
-                      />
-                    </div>
-                    <div className="text-label-sm text-on-surface-variant mt-1">
-                      Step {b.build_step} of {b.build_total_steps}
-                    </div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        Step {b.build_step} of {b.build_total_steps}
+                      </div>
+                    </Link>
                   </motion.li>
                 );
               })}
@@ -274,119 +285,56 @@ export function DashboardView({
           )}
         </motion.section>
 
-        <motion.section
-          variants={fadeUp}
-          className="bg-white rounded-xl border border-surface-variant p-6"
-        >
+        <motion.section variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="font-h3 text-h3 text-primary">
-                Outreach snapshot
-              </h3>
-              <p className="text-label-sm text-on-surface-variant">
-                7-day, multi-touch attribution
-              </p>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 18 }}>task_alt</span>
+              </div>
+              <h3 className="font-bold text-slate-900">Pending Approvals</h3>
             </div>
-            <span className="text-label-sm text-on-surface-variant px-2 py-1 rounded-full bg-surface-container-low">
-              owned CDP
-            </span>
+            {pendingApprovals.length > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 text-xs font-semibold">
+                {pendingApprovals.length} waiting
+              </span>
+            )}
           </div>
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={stagger(0.25, 0.06)}
-            className="grid grid-cols-2 gap-x-6 gap-y-5"
-          >
-            {OUTREACH_PLACEHOLDER.map((o) => (
-              <motion.div key={o.label} variants={fadeUpSm}>
-                <div className="text-label-sm text-on-surface-variant">
-                  {o.label}
-                </div>
-                <div className="font-h3 text-h3 text-primary mt-1 truncate">
-                  {o.value}
-                </div>
-                <div className="text-label-sm text-on-surface-variant mt-0.5">
-                  {o.delta}
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+          {pendingApprovals.length === 0 ? (
+            <EmptyBlock
+              icon="task_alt"
+              title="All caught up"
+              body="Launch gates appear here when a build reaches step 11."
+            />
+          ) : (
+            <motion.ul initial="hidden" animate="visible" variants={stagger(0.1, 0.07)} className="space-y-3">
+              {pendingApprovals.map((p) => (
+                <motion.li key={p.id} variants={fadeUpSm}>
+                  <Link
+                    href="/dashboard/pipeline"
+                    className="flex items-center gap-4 py-2 hover:bg-slate-50 -mx-2 px-2 rounded-lg transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-none bg-amber-50">
+                      <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 20 }}>rocket_launch</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 truncate">
+                        Approve — <span className="font-mono">{p.slug}</span>
+                      </div>
+                      <div className="text-xs text-slate-500 truncate">
+                        Steps 1–10 passed ·{" "}
+                        {p.estimated_monthly_opex_eur
+                          ? `est. €${Number(p.estimated_monthly_opex_eur).toFixed(0)}/mo`
+                          : "opex pending"}
+                      </div>
+                    </div>
+                    <span className="text-blue-600 font-semibold text-xs flex-none">Review</span>
+                  </Link>
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
         </motion.section>
       </motion.div>
-
-      {/* Pending approvals */}
-      <motion.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={inViewOnce}
-        variants={fadeUp}
-        className="bg-white rounded-xl border border-surface-variant p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-h3 text-h3 text-primary">Pending approvals</h3>
-            <p className="text-label-sm text-on-surface-variant">
-              Step-11 HITL launch gates — Release Agent waits for your sign-off
-            </p>
-          </div>
-          {pendingApprovals.length > 0 ? (
-            <span className="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container text-label-sm font-semibold">
-              {pendingApprovals.length} waiting
-            </span>
-          ) : null}
-        </div>
-        {pendingApprovals.length === 0 ? (
-          <EmptyBlock
-            icon="task_alt"
-            title="All caught up"
-            body="Launch-approval gates appear here when a build reaches step 11. Pattern, content, and propagation approvals will surface here once those rituals are wired."
-          />
-        ) : (
-          <motion.ul
-            initial="hidden"
-            whileInView="visible"
-            viewport={inViewOnce}
-            variants={stagger(0.1, 0.07)}
-            className="divide-y divide-surface-variant"
-          >
-            {pendingApprovals.map((p) => (
-              <motion.li
-                key={p.id}
-                variants={fadeUpSm}
-                whileHover={{ x: 2 }}
-                transition={{ duration: 0.2 }}
-                className="py-3 first:pt-0 last:pb-0 flex items-center gap-4"
-              >
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-none bg-secondary-fixed text-secondary">
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 20 }}
-                  >
-                    rocket_launch
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-body-md font-semibold text-on-surface truncate">
-                    Approve launch — <span className="font-mono">{p.slug}</span>
-                  </div>
-                  <div className="text-label-sm text-on-surface-variant truncate">
-                    Steps 1–10 passed ·{" "}
-                    {p.estimated_monthly_opex_eur
-                      ? `est. €${Number(p.estimated_monthly_opex_eur).toFixed(0)}/mo opex`
-                      : "opex pending"}
-                  </div>
-                </div>
-                <Link
-                  href="/dashboard/pipeline"
-                  className="text-secondary font-semibold text-label-sm hover:underline flex-none"
-                >
-                  Review →
-                </Link>
-              </motion.li>
-            ))}
-          </motion.ul>
-        )}
-      </motion.section>
 
       {/* Activity feed */}
       <motion.section
@@ -394,27 +342,24 @@ export function DashboardView({
         whileInView="visible"
         viewport={inViewOnce}
         variants={fadeUp}
-        className="bg-white rounded-xl border border-surface-variant p-6"
+        className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6"
       >
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-h3 text-h3 text-primary">Recent activity</h3>
-            <p className="text-label-sm text-on-surface-variant">
-              From the agent_runs ledger — every action attributable, costable
-            </p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+              <span className="material-symbols-outlined text-slate-600" style={{ fontSize: 18 }}>fact_check</span>
+            </div>
+            <h3 className="font-bold text-slate-900">Recent Activity</h3>
           </div>
-          <Link
-            href="/dashboard/audit"
-            className="text-secondary font-semibold text-label-sm hover:underline"
-          >
-            Open audit trail →
+          <Link href="/dashboard/audit" className="text-blue-600 font-semibold text-sm hover:text-blue-700">
+            View all
           </Link>
         </div>
         {recentRuns.length === 0 ? (
           <EmptyBlock
             icon="fact_check"
             title="No activity yet"
-            body="Once you dispatch a build, every Build Orchestrator and Channel Agent run lands here with cost and latency."
+            body="Activity will appear here once you dispatch a build or generate ideas."
           />
         ) : (
           <motion.ol
@@ -422,22 +367,18 @@ export function DashboardView({
             whileInView="visible"
             viewport={inViewOnce}
             variants={stagger(0.05, 0.04)}
-            className="space-y-3"
+            className="space-y-2"
           >
             {recentRuns.map((r) => (
-              <motion.li key={r.id} variants={fadeUpSm} className="flex gap-3">
-                <div className="text-label-sm font-mono text-on-surface-variant w-12 flex-none pt-0.5 tabular-nums">
+              <motion.li key={r.id} variants={fadeUpSm} className="flex gap-3 py-1.5">
+                <div className="text-xs font-mono text-slate-400 w-12 flex-none pt-0.5 tabular-nums">
                   {formatTime(r.created_at)}
                 </div>
-                <div className="flex-1 text-body-md min-w-0">
-                  <span className="font-semibold text-on-surface">
-                    {r.agent}
-                  </span>{" "}
-                  <span className="text-on-surface-variant">
-                    {humanise(r)}
-                  </span>
+                <div className="flex-1 text-sm min-w-0">
+                  <span className="font-semibold text-slate-900">{r.agent}</span>{" "}
+                  <span className="text-slate-500">{humanise(r)}</span>
                 </div>
-                <div className="text-label-sm font-mono text-on-surface-variant flex-none hidden sm:block tabular-nums">
+                <div className="text-xs font-mono text-slate-400 flex-none hidden sm:block tabular-nums">
                   €{Number(r.cost_eur || 0).toFixed(4)}
                 </div>
               </motion.li>
@@ -445,6 +386,56 @@ export function DashboardView({
           </motion.ol>
         )}
       </motion.section>
+    </motion.div>
+  );
+}
+
+function ChecklistItem({
+  done,
+  label,
+  description,
+  href,
+  actionLabel,
+}: {
+  done: boolean;
+  label: string;
+  description: string;
+  href: string;
+  actionLabel: string;
+}) {
+  return (
+    <div className={`flex items-center gap-4 py-3 px-3 rounded-xl transition-colors ${done ? "bg-emerald-50/50" : "hover:bg-slate-50"}`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-none ${
+        done ? "bg-emerald-100" : "border-2 border-slate-200"
+      }`}>
+        {done && <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 18 }}>check</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm font-medium ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{label}</div>
+        <div className="text-xs text-slate-400 mt-0.5">{description}</div>
+      </div>
+      {!done && (
+        <Link
+          href={href}
+          className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors flex-none"
+        >
+          {actionLabel}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function QuickAction({ href, icon, label }: { href: string; icon: string; label: string }) {
+  return (
+    <motion.div variants={fadeUpSm}>
+      <Link
+        href={href}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all"
+      >
+        <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>{icon}</span>
+        {label}
+      </Link>
     </motion.div>
   );
 }
@@ -463,28 +454,21 @@ function EmptyBlock({
   ctaHref?: string;
 }) {
   return (
-    <div className="text-center py-6">
-      <span
-        className="material-symbols-outlined text-on-surface-variant"
-        style={{ fontSize: 36 }}
-      >
-        {icon}
-      </span>
-      <h4 className="font-h3 text-h3 text-on-surface mt-2">{title}</h4>
-      <p className="text-on-surface-variant mt-1 max-w-md mx-auto text-body-md">
-        {body}
-      </p>
-      {ctaLabel && ctaHref ? (
+    <div className="text-center py-8">
+      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+        <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 24 }}>{icon}</span>
+      </div>
+      <h4 className="font-semibold text-slate-900 mt-3">{title}</h4>
+      <p className="text-slate-500 mt-1 max-w-sm mx-auto text-sm">{body}</p>
+      {ctaLabel && ctaHref && (
         <Link
           href={ctaHref}
-          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90"
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-colors"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-            add
-          </span>
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
           {ctaLabel}
         </Link>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -492,7 +476,9 @@ function EmptyBlock({
 function formatTime(iso: string): string {
   const d = new Date(iso);
   if (!Number.isFinite(d.getTime())) return "--:--";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const h = d.getUTCHours().toString().padStart(2, "0");
+  const m = d.getUTCMinutes().toString().padStart(2, "0");
+  return `${h}:${m}`;
 }
 
 function humanise(r: AgentRunRow): string {

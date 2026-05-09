@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -22,8 +22,8 @@ type Props = {
 const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: string }> = {
   live: { label: "Live", cls: "bg-emerald-100 text-emerald-800", icon: "check_circle" },
   building: { label: "Building", cls: "bg-amber-100 text-amber-800", icon: "construction" },
-  paused: { label: "Paused", cls: "bg-surface-container text-on-surface-variant", icon: "pause_circle" },
-  killed: { label: "Killed", cls: "bg-error-container text-on-error-container", icon: "cancel" },
+  paused: { label: "Paused", cls: "bg-slate-100 text-slate-500", icon: "pause_circle" },
+  killed: { label: "Killed", cls: "bg-red-50 text-red-700", icon: "cancel" },
 };
 
 const PHASE_CONFIG: Record<string, { label: string; description: string }> = {
@@ -46,15 +46,15 @@ export function PortfolioView({ products, summary }: Props) {
     >
       <motion.div variants={fadeUp} className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="font-h1 text-h1 text-primary">Portfolio Control Plane</h1>
-          <p className="text-on-surface-variant mt-1.5 max-w-3xl">
+          <h1 className="text-2xl font-bold text-slate-900">Portfolio Control Plane</h1>
+          <p className="text-slate-500 mt-1.5 max-w-3xl">
             Cross-product budget enforcement and unified reporting. Per-product
             budget vs spend, lifecycle stage, and drift alerts.
           </p>
         </div>
         <Link
           href="/dashboard/buildspec"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90 flex-none"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold text-sm hover:opacity-90 flex-none"
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
           New Build
@@ -75,25 +75,25 @@ export function PortfolioView({ products, summary }: Props) {
       </motion.div>
 
       {/* Platform opex bar */}
-      <motion.div variants={fadeUp} className="bg-white rounded-xl border border-surface-variant p-5">
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 p-5">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-secondary" style={{ fontSize: 20 }}>monitoring</span>
-            <span className="font-semibold text-body-md text-on-surface">Monthly platform opex</span>
+            <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 20 }}>monitoring</span>
+            <span className="font-semibold text-sm text-slate-900">Monthly platform opex</span>
           </div>
-          <span className="text-label-sm text-on-surface-variant">
+          <span className="text-xs text-slate-500">
             {fmtEur(summary.monthly_opex_eur)} / {fmtEur(summary.platform_opex_cap_eur)} V3 target
           </span>
         </div>
-        <div className="h-2 bg-surface-variant rounded-full overflow-hidden">
+        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
           <motion.div
-            className={opexPct > 80 ? "h-full bg-error" : "h-full bg-secondary"}
+            className={opexPct > 80 ? "h-full bg-red-500" : "h-full bg-blue-600"}
             initial={{ width: "0%" }}
             animate={{ width: `${Math.min(100, opexPct)}%` }}
             transition={{ duration: 0.8, ease: easeOut }}
           />
         </div>
-        <div className="text-label-sm text-on-surface-variant mt-1">
+        <div className="text-xs text-slate-500 mt-1">
           {opexPct.toFixed(1)}% of V3 cap (€15,000/mo)
         </div>
       </motion.div>
@@ -102,19 +102,19 @@ export function PortfolioView({ products, summary }: Props) {
       {products.length === 0 ? (
         <motion.div
           variants={scaleIn}
-          className="bg-white rounded-xl border border-surface-variant p-8 text-center"
+          className="bg-white rounded-2xl border border-slate-200 p-8 text-center"
         >
-          <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 40 }}>
+          <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 40 }}>
             inventory_2
           </span>
-          <h3 className="font-h3 text-h3 text-on-surface mt-3">No products yet</h3>
-          <p className="text-on-surface-variant mt-1.5 max-w-md mx-auto text-body-md">
+          <h3 className="text-lg font-semibold text-slate-900 mt-3">No products yet</h3>
+          <p className="text-slate-500 mt-1.5 max-w-md mx-auto text-sm">
             Compose a BuildSpec to create your first product. The portfolio will
             track budget, lifecycle, and performance once products are live.
           </p>
           <Link
             href="/dashboard/buildspec"
-            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90"
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold text-sm hover:opacity-90"
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
             Start a build
@@ -131,12 +131,12 @@ export function PortfolioView({ products, summary }: Props) {
       {/* Outreach attribution notice */}
       <motion.div
         variants={fadeUp}
-        className="bg-secondary-fixed/30 rounded-lg p-4 border border-secondary/20"
+        className="bg-blue-50/30 rounded-2xl p-4 border border-secondary/20"
       >
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-secondary flex-none" style={{ fontSize: 20 }}>info</span>
-          <div className="text-body-md text-on-surface-variant">
-            <span className="font-semibold text-on-surface">Outreach attribution (PRD §8.3):</span>{" "}
+          <span className="material-symbols-outlined text-blue-600 flex-none" style={{ fontSize: 20 }}>info</span>
+          <div className="text-sm text-slate-500">
+            <span className="font-semibold text-slate-900">Outreach attribution (PRD §8.3):</span>{" "}
             CAC by channel, LTV by multi-touch attribution, and creative fatigue
             indicators will appear here once PostHog CDP is connected and outreach
             channels are live. Budget decisions will use owned attribution only,
@@ -176,23 +176,23 @@ function ProductCard({ product: p }: { product: PortfolioProduct }) {
     <motion.div
       variants={fadeUp}
       whileHover={{ y: -1, transition: { duration: 0.2, ease: easeOut } }}
-      className="bg-white rounded-xl border border-surface-variant p-5 hover:shadow-md transition-shadow"
+      className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow"
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-body-lg font-semibold text-on-surface">{p.slug}</span>
-            <span className={"px-2 py-0.5 rounded-full text-label-sm font-semibold " + statusCfg.cls}>
+            <span className="font-mono text-base font-semibold text-slate-900">{p.slug}</span>
+            <span className={"px-2 py-0.5 rounded-full text-xs font-semibold " + statusCfg.cls}>
               {statusCfg.label}
             </span>
             {p.status === "live" && (
-              <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-secondary text-label-sm font-semibold">
+              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold">
                 {lifecyclePhase.label}
               </span>
             )}
           </div>
-          <div className="text-label-sm text-on-surface-variant mt-0.5">
+          <div className="text-xs text-slate-500 mt-0.5">
             {p.name} · {p.template_id} v{p.template_version} · {p.age_days}d old
           </div>
         </div>
@@ -205,7 +205,7 @@ function ProductCard({ product: p }: { product: PortfolioProduct }) {
               <button
                 type="submit"
                 disabled={anyPending}
-                className="px-3 py-1.5 rounded-lg border border-surface-variant text-on-surface-variant text-label-sm font-semibold hover:bg-surface-container-low disabled:opacity-60 inline-flex items-center gap-1"
+                className="px-3 py-1.5 rounded-2xl border border-slate-200 text-slate-500 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60 inline-flex items-center gap-1"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>pause</span>
                 Pause
@@ -218,7 +218,7 @@ function ProductCard({ product: p }: { product: PortfolioProduct }) {
               <button
                 type="submit"
                 disabled={anyPending}
-                className="px-3 py-1.5 rounded-lg bg-primary text-on-primary text-label-sm font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-1"
+                className="px-3 py-1.5 rounded-2xl bg-slate-900 text-white text-xs font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-1"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>
                 Resume
@@ -231,7 +231,7 @@ function ProductCard({ product: p }: { product: PortfolioProduct }) {
               <button
                 type="submit"
                 disabled={anyPending}
-                className="px-3 py-1.5 rounded-lg border border-error text-error text-label-sm font-semibold hover:bg-error/5 disabled:opacity-60 inline-flex items-center gap-1"
+                className="px-3 py-1.5 rounded-2xl border border-error text-red-500 text-xs font-semibold hover:bg-red-500/5 disabled:opacity-60 inline-flex items-center gap-1"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
                 Kill
@@ -259,19 +259,19 @@ function ProductCard({ product: p }: { product: PortfolioProduct }) {
 
       {/* Lifecycle phase bar for live products */}
       {p.status === "live" && (
-        <div className="mt-4 pt-3 border-t border-surface-variant">
-          <div className="flex items-center justify-between text-label-sm mb-2">
-            <span className="text-on-surface-variant">
-              Lifecycle: <span className="font-semibold text-on-surface">{lifecyclePhase.label}</span>
+        <div className="mt-4 pt-3 border-t border-slate-200">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="text-slate-500">
+              Lifecycle: <span className="font-semibold text-slate-900">{lifecyclePhase.label}</span>
             </span>
-            <span className="text-on-surface-variant">{lifecyclePhase.description}</span>
+            <span className="text-slate-500">{lifecyclePhase.description}</span>
           </div>
           <LifecycleBar ageDays={p.age_days} />
         </div>
       )}
 
       {errorMsg && "message" in errorMsg! && (
-        <p className="text-error text-label-sm mt-2">
+        <p className="text-red-500 text-xs mt-2">
           {(errorMsg as { message: string }).message}
         </p>
       )}
@@ -284,15 +284,15 @@ function ProductCard({ product: p }: { product: PortfolioProduct }) {
 function LifecycleBar({ ageDays }: { ageDays: number }) {
   const phases = [
     { label: "Ignition", endDay: 28, cls: "bg-amber-400" },
-    { label: "Consolidation", endDay: 90, cls: "bg-secondary" },
-    { label: "Scale or Kill", endDay: 180, cls: "bg-primary" },
+    { label: "Consolidation", endDay: 90, cls: "bg-blue-600" },
+    { label: "Scale or Kill", endDay: 180, cls: "bg-slate-900" },
   ];
   const maxDay = 180;
   const currentPct = Math.min(100, (ageDays / maxDay) * 100);
 
   return (
     <div className="relative">
-      <div className="h-2 bg-surface-variant rounded-full overflow-hidden flex">
+      <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
         {phases.map((phase, i) => {
           const prevEnd = i === 0 ? 0 : phases[i - 1].endDay;
           const widthPct = ((phase.endDay - prevEnd) / maxDay) * 100;
@@ -303,7 +303,7 @@ function LifecycleBar({ ageDays }: { ageDays: number }) {
               : 0;
           return (
             <div key={phase.label} className="relative" style={{ width: `${widthPct}%` }}>
-              <div className="h-full bg-surface-variant">
+              <div className="h-full bg-slate-100">
                 <motion.div
                   className={"h-full " + phase.cls}
                   initial={{ width: "0%" }}
@@ -315,7 +315,7 @@ function LifecycleBar({ ageDays }: { ageDays: number }) {
           );
         })}
       </div>
-      <div className="flex justify-between mt-1 text-label-sm text-on-surface-variant">
+      <div className="flex justify-between mt-1 text-xs text-slate-500">
         <span>Day 0</span>
         <span>4w</span>
         <span>3mo</span>
@@ -338,15 +338,15 @@ function KpiCard({
   return (
     <motion.div
       variants={scaleIn}
-      className="bg-white rounded-xl border border-surface-variant p-4 hover:border-primary/40 hover:shadow-md transition-shadow"
+      className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-primary/40 hover:shadow-md transition-shadow"
     >
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 18 }}>{icon}</span>
-        <span className="text-label-sm text-on-surface-variant">{label}</span>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>{icon}</span>
+        <span className="text-xs text-slate-500">{label}</span>
       </div>
       <div className={
         "font-display text-2xl font-bold leading-none " +
-        (tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-error" : "text-primary")
+        (tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-red-500" : "text-slate-900")
       }>
         {value}
       </div>
@@ -362,11 +362,11 @@ function Metric({
   tone?: "neutral" | "good" | "warn";
 }) {
   return (
-    <motion.div variants={fadeUpSm} className="bg-surface-container-low rounded-lg px-3 py-2">
-      <div className="text-label-sm text-on-surface-variant">{label}</div>
+    <motion.div variants={fadeUpSm} className="bg-slate-50 rounded-2xl px-3 py-2">
+      <div className="text-xs text-slate-500">{label}</div>
       <div className={
-        "font-semibold text-body-md " +
-        (tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-error" : "text-on-surface")
+        "font-semibold text-sm " +
+        (tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-red-500" : "text-slate-900")
       }>
         {value}
       </div>

@@ -32,7 +32,7 @@ export function DashboardShell({ user, children }: Props) {
   return (
     <I18nProvider>
     <MotionConfig reducedMotion="user">
-      <div className="min-h-screen bg-surface flex">
+      <div className="min-h-screen bg-slate-50 flex">
         {/* Desktop sidebar — sticky full-height */}
         <div className="hidden lg:block flex-none">
           <div className="sticky top-0 h-screen">

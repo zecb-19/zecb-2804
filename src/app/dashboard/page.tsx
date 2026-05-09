@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/dal";
 import {
   countProductsByStatus,
+  getOnboardingProgress,
   listActiveBuildsForUser,
   listLaunchApprovalsForUser,
   listRecentAgentRunsForUser,
@@ -14,15 +15,15 @@ export default async function DashboardPage() {
   if (!user) {
     return null;
   }
-  // Lazy advance any in-flight builds before reading.
   await advancePipelinesForUser(user.id);
-  const [activeBuilds, recentRuns, statusCounts, pendingApprovals, monthly] =
+  const [activeBuilds, recentRuns, statusCounts, pendingApprovals, monthly, onboarding] =
     await Promise.all([
       listActiveBuildsForUser(user.id, 6),
       listRecentAgentRunsForUser(user.id, 12),
       countProductsByStatus(user.id),
       listLaunchApprovalsForUser(user.id, 10),
       sumMonthlyCostForUser(user.id),
+      getOnboardingProgress(user.id),
     ]);
   const firstName = user.name.split(" ")[0] ?? "Founder";
   return (
@@ -33,6 +34,7 @@ export default async function DashboardPage() {
       statusCounts={statusCounts}
       pendingApprovals={pendingApprovals}
       monthlyOpexEur={monthly.total_eur}
+      onboarding={onboarding}
     />
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -42,21 +42,21 @@ export function CookieConsent() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
-      <div className="max-w-2xl mx-auto bg-white rounded-xl border border-surface-variant shadow-lg p-5">
+      <div className="max-w-2xl mx-auto bg-white rounded-xl border border-slate-200 shadow-lg p-5">
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-secondary flex-none mt-0.5" style={{ fontSize: 22 }}>
+          <span className="material-symbols-outlined text-blue-600 flex-none mt-0.5" style={{ fontSize: 22 }}>
             cookie
           </span>
           <div className="flex-1">
-            <h3 className="font-semibold text-body-lg text-on-surface">Cookie-Einstellungen</h3>
-            <p className="text-label-sm text-on-surface-variant mt-1">
+            <h3 className="font-semibold text-body-lg text-slate-900">Cookie-Einstellungen</h3>
+            <p className="text-xs text-slate-900-variant mt-1">
               Wir verwenden Cookies für die Funktion der Website (notwendig) und optional
               für Analyse und Marketing. Sie können Ihre Auswahl jederzeit ändern.
               {" "}
               <button
                 type="button"
                 onClick={() => setShowDetails((v) => !v)}
-                className="text-primary hover:underline"
+                className="text-slate-900 hover:underline"
               >
                 {showDetails ? "Weniger" : "Details anzeigen"}
               </button>
@@ -89,21 +89,21 @@ export function CookieConsent() {
               <button
                 type="button"
                 onClick={() => save({ necessary: true, analytics: true, marketing: true })}
-                className="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90"
+                className="px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold text-sm hover:opacity-90"
               >
                 Alle akzeptieren
               </button>
               <button
                 type="button"
                 onClick={() => save({ necessary: true, analytics: state.analytics, marketing: state.marketing })}
-                className="px-4 py-2 rounded-lg border border-surface-variant text-on-surface font-semibold text-body-md hover:bg-surface-container-low"
+                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-900 font-semibold text-sm hover:bg-slate-50"
               >
                 Auswahl speichern
               </button>
               <button
                 type="button"
                 onClick={() => save({ necessary: true, analytics: false, marketing: false })}
-                className="px-4 py-2 rounded-lg text-on-surface-variant text-body-md hover:underline"
+                className="px-4 py-2 rounded-lg text-slate-900-variant text-sm hover:underline"
               >
                 Nur notwendige
               </button>
@@ -125,10 +125,10 @@ function ConsentToggle({
   onChange?: (v: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-surface-container-low cursor-pointer">
+    <label className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-slate-50 cursor-pointer">
       <div>
-        <div className="text-body-md font-medium text-on-surface">{label}</div>
-        <div className="text-label-sm text-on-surface-variant">{description}</div>
+        <div className="text-sm font-medium text-slate-900">{label}</div>
+        <div className="text-xs text-slate-900-variant">{description}</div>
       </div>
       <input
         type="checkbox"

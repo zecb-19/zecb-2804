@@ -17,17 +17,18 @@ import {
   type ReviewIdeaState,
 } from "@/lib/ideas/definitions";
 
-import { fadeUp, fadeUpSm, scaleIn, stagger } from "./motion";
+const fadeUp = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+const stagger = (d = 0.05, s = 0.06) => ({ hidden: {}, visible: { transition: { delayChildren: d, staggerChildren: s } } });
 
 const inputCls =
-  "w-full px-3 py-2.5 rounded-lg bg-surface-container-low border border-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-body-md";
-const labelCls = "text-label-sm font-semibold text-on-surface mb-1.5 block";
+  "w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-slate-900 placeholder:text-slate-400 transition-colors";
+const labelCls = "text-sm font-medium text-slate-700 mb-1.5 block";
 
 const STATUS_TONE: Record<IdeaStatus, { label: string; cls: string }> = {
-  pending: { label: "Pending review", cls: "bg-amber-100 text-amber-800" },
-  approved: { label: "Approved", cls: "bg-emerald-100 text-emerald-800" },
-  rejected: { label: "Rejected", cls: "bg-error-container text-on-error-container" },
-  promoted: { label: "Promoted to BuildSpec", cls: "bg-secondary-fixed text-secondary" },
+  pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  approved: { label: "Approved", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  rejected: { label: "Rejected", cls: "bg-red-50 text-red-600 border-red-200" },
+  promoted: { label: "Promoted", cls: "bg-blue-50 text-blue-700 border-blue-200" },
 };
 
 const initialGenState: GenerateIdeasState = undefined;
@@ -46,78 +47,40 @@ export function IdeaInboxView({
   const filtered = ideas.filter((i) => filter === "all" || i.status === filter);
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={stagger(0.05, 0.07)}
-      className="space-y-6"
-    >
+    <motion.div initial="hidden" animate="visible" variants={stagger()} className="space-y-6">
       <motion.div variants={fadeUp}>
-        <h1 className="font-h1 text-h1 text-primary">Idea Inbox</h1>
-        <p className="text-on-surface-variant mt-1.5 max-w-3xl">
-          Validated MarketSignalReports from the Architect Agent. Approve one,
-          then promote it to a BuildSpec — fields pre-fill so you can dispatch
-          in seconds.
+        <h1 className="text-2xl font-bold text-slate-900">Idea Inbox</h1>
+        <p className="text-slate-500 mt-1 max-w-2xl">
+          Generate validated business ideas with AI. Approve your favorites, then promote one to start building.
         </p>
       </motion.div>
 
       <GenerateIdeasForm />
 
       <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-2">
-        <FilterPill
-          label={`All (${ideas.length})`}
-          active={filter === "all"}
-          onClick={() => setFilter("all")}
-        />
-        <FilterPill
-          label={`Pending (${counts.pending})`}
-          active={filter === "pending"}
-          onClick={() => setFilter("pending")}
-        />
-        <FilterPill
-          label={`Approved (${counts.approved})`}
-          active={filter === "approved"}
-          onClick={() => setFilter("approved")}
-        />
-        <FilterPill
-          label={`Promoted (${counts.promoted})`}
-          active={filter === "promoted"}
-          onClick={() => setFilter("promoted")}
-        />
-        <FilterPill
-          label={`Rejected (${counts.rejected})`}
-          active={filter === "rejected"}
-          onClick={() => setFilter("rejected")}
-        />
+        <FilterPill label={`All (${ideas.length})`} active={filter === "all"} onClick={() => setFilter("all")} />
+        <FilterPill label={`Pending (${counts.pending})`} active={filter === "pending"} onClick={() => setFilter("pending")} />
+        <FilterPill label={`Approved (${counts.approved})`} active={filter === "approved"} onClick={() => setFilter("approved")} />
+        <FilterPill label={`Promoted (${counts.promoted})`} active={filter === "promoted"} onClick={() => setFilter("promoted")} />
+        <FilterPill label={`Rejected (${counts.rejected})`} active={filter === "rejected"} onClick={() => setFilter("rejected")} />
       </motion.div>
 
       {filtered.length === 0 ? (
-        <motion.div
-          variants={fadeUp}
-          className="bg-white rounded-xl border border-surface-variant p-10 text-center"
-        >
-          <span
-            className="material-symbols-outlined text-on-surface-variant"
-            style={{ fontSize: 36 }}
-          >
-            inbox
-          </span>
-          <h3 className="font-h3 text-h3 text-on-surface mt-2">
-            {ideas.length === 0
-              ? "No ideas yet"
-              : "Nothing matches that filter"}
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+            <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 28 }}>inbox</span>
+          </div>
+          <h3 className="font-bold text-slate-900 mt-4">
+            {ideas.length === 0 ? "No ideas yet" : "Nothing matches that filter"}
           </h3>
-          <p className="text-on-surface-variant mt-1 max-w-md mx-auto text-body-md">
+          <p className="text-slate-500 mt-1 max-w-md mx-auto text-sm">
             {ideas.length === 0
-              ? "Describe your verticals above and let the Architect Agent surface 3 validated opportunities."
-              : "Try another filter or generate fresh ideas."}
+              ? "Describe your target market above and generate your first batch of ideas."
+              : "Try a different filter or generate new ideas."}
           </p>
         </motion.div>
       ) : (
-        <motion.ul
-          variants={stagger(0.05, 0.06)}
-          className="grid grid-cols-1 gap-4"
-        >
+        <motion.ul variants={stagger(0.05, 0.06)} className="space-y-4">
           {filtered.map((idea) => (
             <IdeaCard key={idea.id} idea={idea} />
           ))}
@@ -127,26 +90,16 @@ export function IdeaInboxView({
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────
-
-function FilterPill({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={
-        "px-3 py-1.5 rounded-full text-label-sm font-semibold transition-colors " +
+        "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all " +
         (active
-          ? "bg-primary text-on-primary"
-          : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high")
+          ? "bg-slate-900 text-white shadow-sm"
+          : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700")
       }
     >
       {label}
@@ -155,107 +108,73 @@ function FilterPill({
 }
 
 function GenerateIdeasForm() {
-  const [state, action, pending] = useActionState(
-    generateIdeasAction,
-    initialGenState,
-  );
+  const [state, action, pending] = useActionState(generateIdeasAction, initialGenState);
   const failure = state && !state.ok ? state : null;
   const success = state && state.ok ? state : null;
 
   return (
-    <motion.section
-      variants={scaleIn}
-      className="bg-white rounded-xl border border-surface-variant p-6"
-    >
-      <header className="flex items-start justify-between gap-3 mb-4">
+    <motion.section variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+      <div className="flex items-start gap-4 mb-5">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-none shadow-lg shadow-violet-500/20">
+          <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>auto_awesome</span>
+        </div>
         <div>
-          <h2 className="font-h3 text-h3 text-primary">
-            Generate ideas with the Architect Agent
-          </h2>
-          <p className="text-label-sm text-on-surface-variant mt-1 max-w-2xl">
-            Describe verticals, end-buyer types, or constraints. The agent
-            returns 3 distinct MarketSignalReports with positive-unit-economic
-            estimates. Median cost per generation: ~€0.05.
+          <h2 className="font-bold text-slate-900">Generate Ideas</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            The AI generates 3 validated ideas with unit economics. ~€0.05 per generation.
           </p>
         </div>
-      </header>
+      </div>
 
       <form action={action} className="space-y-4">
-        {failure?.message ? (
-          <div className="px-3 py-2 rounded-lg bg-error-container text-on-error-container text-body-md">
-            {failure.message}
+        {failure?.message && (
+          <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">{failure.message}</div>
+        )}
+        {success && (
+          <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm flex items-center gap-2">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>
+            Generated 3 ideas · cost €{success.cost_eur.toFixed(4)} · scroll down to review.
           </div>
-        ) : null}
-        {success ? (
-          <div className="px-3 py-2 rounded-lg bg-emerald-100 text-emerald-800 text-body-md">
-            Generated 3 ideas · cost €{success.cost_eur.toFixed(4)} · scroll
-            below to review.
-          </div>
-        ) : null}
+        )}
 
         <div>
-          <label htmlFor="verticals" className={labelCls}>
-            Target verticals or angles
-          </label>
+          <label htmlFor="verticals" className={labelCls}>What market do you want to serve?</label>
           <textarea
             id="verticals"
             name="verticals"
             rows={3}
-            placeholder="e.g. DACH gastronomy operators · Handwerk SMBs · regional accountants · supplier-compliance teams"
+            placeholder="e.g. Amazon sellers tracking competitor prices in Germany, restaurants monitoring supplier costs..."
             className={inputCls}
             required
           />
           {failure?.errors?.verticals?.map((e) => (
-            <p key={e} className="text-error text-label-sm mt-1">
-              {e}
-            </p>
+            <p key={e} className="text-red-500 text-xs mt-1">{e}</p>
           ))}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label htmlFor="region" className={labelCls}>
-              Region
-            </label>
-            <select
-              id="region"
-              name="region"
-              defaultValue="DACH"
-              className={inputCls}
-            >
+            <label htmlFor="region" className={labelCls}>Region</label>
+            <select id="region" name="region" defaultValue="DACH" className={inputCls}>
               {IDEA_REGIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
           </div>
           <div>
-            <label htmlFor="capital_cap_eur" className={labelCls}>
-              Operator monthly opex cap (€)
-            </label>
-            <input
-              id="capital_cap_eur"
-              name="capital_cap_eur"
-              type="number"
-              min={0}
-              max={100000}
-              defaultValue={500}
-              className={inputCls}
-            />
+            <label htmlFor="capital_cap_eur" className={labelCls}>Monthly budget cap (€)</label>
+            <input id="capital_cap_eur" name="capital_cap_eur" type="number" min={0} max={100000} defaultValue={500} className={inputCls} />
           </div>
         </div>
 
         <div>
-          <label htmlFor="notes" className={labelCls}>
-            Constraints, preferences, or anti-goals (optional)
-          </label>
+          <label htmlFor="notes" className={labelCls}>Any constraints? (optional)</label>
           <input
             id="notes"
             name="notes"
             type="text"
             maxLength={800}
-            placeholder="e.g. avoid price-monitoring (already shipped), prefer DATEV-adjacent ideas"
+            placeholder="e.g. avoid price-monitoring, prefer compliance-related ideas"
             className={inputCls}
           />
         </div>
@@ -263,29 +182,28 @@ function GenerateIdeasForm() {
         <button
           type="submit"
           disabled={pending}
-          className="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+          className="px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-            {pending ? "hourglass_top" : "auto_awesome"}
-          </span>
-          {pending ? "Architect thinking…" : "Generate 3 ideas"}
+          {pending ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>auto_awesome</span>
+              Generate 3 Ideas
+            </>
+          )}
         </button>
       </form>
     </motion.section>
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────
-
 function IdeaCard({ idea }: { idea: IdeaRow }) {
-  const [approveState, approveAction, approvePending] = useActionState(
-    approveIdeaAction,
-    initialReviewState,
-  );
-  const [rejectState, rejectAction, rejectPending] = useActionState(
-    rejectIdeaAction,
-    initialReviewState,
-  );
+  const [approveState, approveAction, approvePending] = useActionState(approveIdeaAction, initialReviewState);
+  const [rejectState, rejectAction, rejectPending] = useActionState(rejectIdeaAction, initialReviewState);
 
   const tone = STATUS_TONE[idea.status];
   const ue = idea.unit_economics;
@@ -293,155 +211,93 @@ function IdeaCard({ idea }: { idea: IdeaRow }) {
     (approveState && !approveState.ok ? approveState.message : null) ??
     (rejectState && !rejectState.ok ? rejectState.message : null);
 
-  const dispatchedToBuildSpec = idea.status === "promoted";
-
   return (
-    <motion.li
-      variants={fadeUpSm}
-      className="bg-white rounded-xl border border-surface-variant p-6"
-    >
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-secondary text-label-sm font-semibold">
-              {idea.vertical}
-            </span>
-            <span
-              className={
-                "px-2 py-0.5 rounded-full text-label-sm font-semibold " + tone.cls
-              }
-            >
-              {tone.label}
-            </span>
-            {idea.suggested_slug ? (
-              <span className="font-mono text-label-sm text-on-surface-variant">
-                {idea.suggested_slug}
-              </span>
-            ) : null}
-          </div>
-          <h3 className="font-h3 text-h3 text-on-surface mt-2">
-            {idea.opportunity}
-          </h3>
-          <p className="text-label-sm text-on-surface-variant mt-1">
-            For <span className="font-semibold">{idea.persona.role}</span> at{" "}
-            {idea.persona.company_size} · {idea.persona.country}
-          </p>
-        </div>
-        <div className="text-label-sm text-on-surface-variant text-right flex-none">
-          €{Number(idea.cost_eur).toFixed(4)} · {idea.llm_model ?? "—"}
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Block label="Pain">{idea.pain_statement}</Block>
-        <Block label="Promise">{idea.core_promise}</Block>
-        {idea.mechanism ? <Block label="Mechanism">{idea.mechanism}</Block> : null}
-        {idea.tam_estimate ? <Block label="TAM">{idea.tam_estimate}</Block> : null}
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-label-sm">
-        <Stat
-          label="CAC"
-          value={`€${ue.estimated_cac_eur.toFixed(0)}`}
-          tone="neutral"
-        />
-        <Stat
-          label="LTV"
-          value={`€${ue.estimated_ltv_eur.toFixed(0)}`}
-          tone="good"
-        />
-        <Stat
-          label="Payback"
-          value={`${ue.estimated_payback_months.toFixed(1)} mo`}
-          tone={ue.estimated_payback_months <= 6 ? "good" : "neutral"}
-        />
-        <Stat label="Confidence" value={ue.confidence} tone="neutral" />
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
-          <span className="text-label-sm font-semibold text-on-surface-variant">
-            Data sources
-          </span>
-          <ul className="mt-1.5 space-y-1.5">
-            {idea.suggested_data_sources.map((d) => (
-              <li
-                key={d.source_name}
-                className="text-body-md text-on-surface flex gap-2"
-              >
-                <span
-                  className="material-symbols-outlined text-secondary flex-none mt-0.5"
-                  style={{ fontSize: 16 }}
-                >
-                  database
-                </span>
-                <span>
-                  <span className="font-mono text-label-sm bg-surface-container-low px-1.5 py-0.5 rounded">
-                    {d.type}
-                  </span>{" "}
-                  <span className="font-semibold">{d.source_name}</span>
-                  <span className="text-on-surface-variant"> — {d.why_relevant}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <span className="text-label-sm font-semibold text-on-surface-variant">
-            Pricing
-          </span>
-          <ul className="mt-1.5 space-y-1">
-            {idea.suggested_pricing_tiers.map((t) => (
-              <li
-                key={t.name}
-                className="text-body-md text-on-surface flex justify-between gap-2"
-              >
-                <span>
-                  <span className="font-semibold">{t.name}</span>
-                  {t.target_segment ? (
-                    <span className="text-on-surface-variant">
-                      {" "}
-                      · {t.target_segment}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="text-on-surface-variant tabular-nums">
-                  €{t.price_eur_monthly.toFixed(0)}/mo
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-3">
-            <span className="text-label-sm font-semibold text-on-surface-variant">
-              Channels
-            </span>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {idea.suggested_notification_channels.map((c) => (
-                <span
-                  key={c}
-                  className="px-2 py-0.5 rounded-full bg-surface-container-low text-label-sm"
-                >
-                  {c}
-                </span>
-              ))}
+    <motion.li variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="px-6 pt-5 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">{idea.vertical}</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${tone.cls}`}>{tone.label}</span>
+              {idea.suggested_slug && (
+                <span className="font-mono text-xs text-slate-400">{idea.suggested_slug}</span>
+              )}
             </div>
+            <h3 className="font-bold text-lg text-slate-900">{idea.opportunity}</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              For <span className="font-semibold text-slate-700">{idea.persona.role}</span> at {idea.persona.company_size} · {idea.persona.country}
+            </p>
+          </div>
+          <div className="text-xs text-slate-400 text-right flex-none font-mono">
+            €{Number(idea.cost_eur).toFixed(4)}
           </div>
         </div>
       </div>
 
-      {idea.reasoning ? (
-        <details className="mt-4">
-          <summary className="text-label-sm text-secondary font-semibold cursor-pointer hover:underline">
-            Architect Agent reasoning
-          </summary>
-          <p className="text-body-md text-on-surface-variant mt-2 whitespace-pre-wrap">
-            {idea.reasoning}
-          </p>
-        </details>
-      ) : null}
+      {/* Pain / Promise */}
+      <div className="px-6 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <InfoBlock label="Pain" text={idea.pain_statement} color="red" />
+        <InfoBlock label="Promise" text={idea.core_promise} color="emerald" />
+      </div>
 
-      <div className="mt-5 border-t border-surface-variant pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="text-label-sm text-on-surface-variant">
+      {/* Unit Economics */}
+      <div className="px-6 pb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <MetricCard label="CAC" value={`€${ue.estimated_cac_eur.toFixed(0)}`} good={ue.estimated_cac_eur < 100} />
+          <MetricCard label="LTV" value={`€${ue.estimated_ltv_eur.toFixed(0)}`} good={ue.estimated_ltv_eur > 300} />
+          <MetricCard label="Payback" value={`${ue.estimated_payback_months.toFixed(1)} mo`} good={ue.estimated_payback_months <= 6} />
+          <MetricCard label="Confidence" value={ue.confidence} good={ue.confidence === "high"} />
+        </div>
+      </div>
+
+      {/* Data sources + Pricing */}
+      <div className="px-6 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Data Sources</span>
+          <ul className="mt-2 space-y-1.5">
+            {idea.suggested_data_sources.map((d) => (
+              <li key={d.source_name} className="flex items-start gap-2 text-sm">
+                <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-xs font-mono flex-none">{d.type}</span>
+                <span className="text-slate-700">{d.source_name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pricing Tiers</span>
+          <ul className="mt-2 space-y-1">
+            {idea.suggested_pricing_tiers.map((t) => (
+              <li key={t.name} className="flex justify-between items-center text-sm">
+                <span className="font-medium text-slate-700">{t.name}</span>
+                <span className="font-mono text-slate-500">€{t.price_eur_monthly.toFixed(0)}/mo</span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {idea.suggested_notification_channels.map((c) => (
+              <span key={c} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs">{c}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Reasoning (collapsible) */}
+      {idea.reasoning && (
+        <div className="px-6 pb-4">
+          <details className="group">
+            <summary className="text-xs text-blue-600 font-semibold cursor-pointer hover:text-blue-700 flex items-center gap-1">
+              <span className="material-symbols-outlined transition-transform group-open:rotate-90" style={{ fontSize: 14 }}>chevron_right</span>
+              AI reasoning
+            </summary>
+            <p className="text-sm text-slate-500 mt-2 whitespace-pre-wrap leading-relaxed">{idea.reasoning}</p>
+          </details>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="text-xs text-slate-400">
           {idea.reviewer_note ? (
             <span>Note: {idea.reviewer_note}</span>
           ) : (
@@ -456,9 +312,9 @@ function IdeaCard({ idea }: { idea: IdeaRow }) {
                 <button
                   type="submit"
                   disabled={rejectPending}
-                  className="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low font-semibold text-label-sm disabled:opacity-60"
+                  className="px-3 py-2 rounded-xl text-slate-500 hover:bg-white hover:text-red-600 border border-transparent hover:border-red-200 font-semibold text-xs transition-all disabled:opacity-50"
                 >
-                  {rejectPending ? "Rejecting…" : "Reject"}
+                  {rejectPending ? "Rejecting..." : "Reject"}
                 </button>
               </form>
               <form action={approveAction}>
@@ -466,24 +322,19 @@ function IdeaCard({ idea }: { idea: IdeaRow }) {
                 <button
                   type="submit"
                   disabled={approvePending}
-                  className="px-3 py-2 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-semibold text-label-sm disabled:opacity-60"
+                  className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-semibold text-xs transition-colors disabled:opacity-50"
                 >
-                  {approvePending ? "Approving…" : "Approve"}
+                  {approvePending ? "Approving..." : "Approve"}
                 </button>
               </form>
               <form action={promoteIdeaAction}>
                 <input type="hidden" name="idea_id" value={idea.id} />
                 <button
                   type="submit"
-                  className="px-3 py-2 rounded-lg bg-primary text-on-primary hover:opacity-90 font-semibold text-label-sm inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-semibold text-xs transition-colors inline-flex items-center gap-1.5"
                 >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 16 }}
-                  >
-                    rocket_launch
-                  </span>
-                  Promote to BuildSpec
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>rocket_launch</span>
+                  Promote to Build
                 </button>
               </form>
             </>
@@ -492,71 +343,47 @@ function IdeaCard({ idea }: { idea: IdeaRow }) {
               <input type="hidden" name="idea_id" value={idea.id} />
               <button
                 type="submit"
-                className="px-3 py-2 rounded-lg bg-primary text-on-primary hover:opacity-90 font-semibold text-label-sm inline-flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-semibold text-xs transition-colors inline-flex items-center gap-1.5"
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 16 }}
-                >
-                  rocket_launch
-                </span>
-                Promote to BuildSpec
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>rocket_launch</span>
+                Promote to Build
               </button>
             </form>
-          ) : dispatchedToBuildSpec ? (
-            <span className="text-label-sm text-on-surface-variant">
-              Promoted{idea.reviewed_at ? ` · ${formatRelative(idea.reviewed_at)}` : ""}
-            </span>
           ) : (
-            <span className="text-label-sm text-on-surface-variant">
-              Rejected{idea.reviewed_at ? ` · ${formatRelative(idea.reviewed_at)}` : ""}
+            <span className="text-xs text-slate-400">
+              {idea.status === "promoted" ? "Promoted" : "Rejected"}
+              {idea.reviewed_at ? ` · ${formatRelative(idea.reviewed_at)}` : ""}
             </span>
           )}
         </div>
       </div>
 
-      {reviewError ? (
-        <p className="text-error text-label-sm mt-2">{reviewError}</p>
-      ) : null}
+      {reviewError && (
+        <div className="px-6 pb-4">
+          <p className="text-red-500 text-xs">{reviewError}</p>
+        </div>
+      )}
     </motion.li>
   );
 }
 
-function Block({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoBlock({ label, text, color }: { label: string; text: string; color: "red" | "emerald" }) {
+  const colors = color === "red"
+    ? "bg-red-50 border-red-100 text-red-800"
+    : "bg-emerald-50 border-emerald-100 text-emerald-800";
   return (
-    <div>
-      <span className="text-label-sm font-semibold text-on-surface-variant">
-        {label}
-      </span>
-      <p className="text-body-md text-on-surface mt-0.5">{children}</p>
+    <div className={`rounded-xl border p-4 ${colors}`}>
+      <span className="text-xs font-semibold uppercase tracking-wider opacity-60">{label}</span>
+      <p className="text-sm mt-1 leading-relaxed">{text}</p>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "good" | "warn" | "neutral";
-}) {
+function MetricCard({ label, value, good }: { label: string; value: string; good: boolean }) {
   return (
-    <div className="bg-surface-container-low/40 rounded-lg p-3">
-      <div className="text-label-sm text-on-surface-variant">{label}</div>
-      <div
-        className={
-          "font-h3 text-h3 mt-0.5 " +
-          (tone === "good"
-            ? "text-emerald-600"
-            : tone === "warn"
-              ? "text-error"
-              : "text-on-surface")
-        }
-      >
-        {value}
-      </div>
+    <div className="bg-slate-50 rounded-xl p-3 text-center">
+      <div className="text-xs text-slate-500 mb-1">{label}</div>
+      <div className={`text-lg font-bold ${good ? "text-emerald-600" : "text-slate-700"}`}>{value}</div>
     </div>
   );
 }

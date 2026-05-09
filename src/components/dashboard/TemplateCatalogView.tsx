@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -12,7 +12,7 @@ type Props = { templates: TemplateRow[] };
 const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
   active: { label: "Active", cls: "bg-emerald-100 text-emerald-800" },
   draft: { label: "Draft", cls: "bg-amber-100 text-amber-800" },
-  deprecated: { label: "Deprecated", cls: "bg-surface-container text-on-surface-variant" },
+  deprecated: { label: "Deprecated", cls: "bg-slate-100 text-slate-500" },
 };
 
 const TIER_LABELS: Record<string, string> = {
@@ -24,7 +24,7 @@ const TIER_LABELS: Record<string, string> = {
 const ARTIFACT_STATUS_ICON: Record<string, { icon: string; cls: string }> = {
   complete: { icon: "check_circle", cls: "text-emerald-500" },
   in_progress: { icon: "pending", cls: "text-amber-500" },
-  not_started: { icon: "radio_button_unchecked", cls: "text-on-surface-variant" },
+  not_started: { icon: "radio_button_unchecked", cls: "text-slate-500" },
 };
 
 export function TemplateCatalogView({ templates }: Props) {
@@ -40,17 +40,17 @@ export function TemplateCatalogView({ templates }: Props) {
     >
       <motion.div variants={fadeUp} className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="font-h1 text-h1 text-primary">Template Catalog</h1>
-          <p className="text-on-surface-variant mt-1.5 max-w-3xl">
+          <h1 className="text-2xl font-bold text-slate-900">Template Catalog</h1>
+          <p className="text-slate-500 mt-1.5 max-w-3xl">
             Layer-2 product archetypes. Each template ships only when all 7
             mandatory artifacts exist, are documented, and pass the test suite.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-none">
-          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-label-sm font-semibold">
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
             {activeCount} active
           </span>
-          <span className="px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-label-sm font-semibold">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
             {totalProducts} products built
           </span>
         </div>
@@ -76,14 +76,14 @@ export function TemplateCatalogView({ templates }: Props) {
       {/* Governance note */}
       <motion.div
         variants={fadeUp}
-        className="bg-secondary-fixed/30 rounded-lg p-4 border border-secondary/20"
+        className="bg-blue-50/30 rounded-2xl p-4 border border-secondary/20"
       >
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-secondary flex-none" style={{ fontSize: 20 }}>
+          <span className="material-symbols-outlined text-blue-600 flex-none" style={{ fontSize: 20 }}>
             gavel
           </span>
-          <div className="text-body-md text-on-surface-variant">
-            <span className="font-semibold text-on-surface">Template governance (PRD §7.8):</span>{" "}
+          <div className="text-sm text-slate-500">
+            <span className="font-semibold text-slate-900">Template governance (PRD §7.8):</span>{" "}
             Adding a template requires at least 3 validated opportunities no existing
             template can serve, a distinct core workflow, Foundation compatibility,
             estimated build under 4 weeks, and eval suite + runbook defined before
@@ -106,26 +106,26 @@ function TemplateSummaryCard({ template: t }: { template: TemplateRow }) {
     <motion.div
       variants={scaleIn}
       whileHover={{ y: -2, transition: { duration: 0.2, ease: easeOut } }}
-      className="bg-white rounded-xl border border-surface-variant p-4 hover:border-primary/40 hover:shadow-md transition-shadow"
+      className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-primary/40 hover:shadow-md transition-shadow"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="px-2 py-0.5 rounded-full text-label-sm font-semibold bg-secondary-fixed text-secondary">
+        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">
           {TIER_LABELS[t.tier] ?? t.tier}
         </span>
-        <span className={"px-2 py-0.5 rounded-full text-label-sm font-semibold " + badge.cls}>
+        <span className={"px-2 py-0.5 rounded-full text-xs font-semibold " + badge.cls}>
           {badge.label}
         </span>
       </div>
-      <div className="font-semibold text-body-lg text-on-surface">{t.name}</div>
-      <div className="text-label-sm text-on-surface-variant mt-0.5">v{t.version}</div>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-label-sm">
+      <div className="font-semibold text-base text-slate-900">{t.name}</div>
+      <div className="text-xs text-slate-500 mt-0.5">v{t.version}</div>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div>
-          <div className="text-on-surface-variant">Products</div>
-          <div className="font-semibold text-on-surface">{t.products_total}</div>
+          <div className="text-slate-500">Products</div>
+          <div className="font-semibold text-slate-900">{t.products_total}</div>
         </div>
         <div>
-          <div className="text-on-surface-variant">Artifacts</div>
-          <div className="font-semibold text-on-surface">{artifactsComplete} / {artifactsTotal}</div>
+          <div className="text-slate-500">Artifacts</div>
+          <div className="font-semibold text-slate-900">{artifactsComplete} / {artifactsTotal}</div>
         </div>
       </div>
     </motion.div>
@@ -142,7 +142,7 @@ function TemplateDetailCard({ template: t }: { template: TemplateRow }) {
   return (
     <motion.div
       variants={fadeUp}
-      className="bg-white rounded-xl border border-surface-variant overflow-hidden"
+      className="bg-white rounded-2xl border border-slate-200 overflow-hidden"
     >
       {/* Header */}
       <div
@@ -151,30 +151,30 @@ function TemplateDetailCard({ template: t }: { template: TemplateRow }) {
       >
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-body-lg text-on-surface">{t.name}</span>
-            <span className="px-2 py-0.5 rounded-full text-label-sm font-semibold bg-secondary-fixed text-secondary">
+            <span className="font-semibold text-base text-slate-900">{t.name}</span>
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">
               {TIER_LABELS[t.tier] ?? t.tier}
             </span>
-            <span className={"px-2 py-0.5 rounded-full text-label-sm font-semibold " + badge.cls}>
+            <span className={"px-2 py-0.5 rounded-full text-xs font-semibold " + badge.cls}>
               {badge.label}
             </span>
             {t.eval_pass_rate !== null && (
               <span className={
-                "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
+                "px-2 py-0.5 rounded-full text-xs font-semibold " +
                 (t.eval_pass_rate >= 98
                   ? "bg-emerald-100 text-emerald-800"
-                  : "bg-error-container text-on-error-container")
+                  : "bg-red-50 text-red-700")
               }>
                 Eval: {t.eval_pass_rate}%
               </span>
             )}
           </div>
-          <div className="text-on-surface-variant text-body-md mt-1 max-w-2xl">
+          <div className="text-slate-500 text-sm mt-1 max-w-2xl">
             {t.description}
           </div>
         </div>
         <span
-          className="material-symbols-outlined text-on-surface-variant flex-none transition-transform"
+          className="material-symbols-outlined text-slate-500 flex-none transition-transform"
           style={{
             fontSize: 22,
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
@@ -190,7 +190,7 @@ function TemplateDetailCard({ template: t }: { template: TemplateRow }) {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           transition={{ duration: 0.3, ease: easeOut }}
-          className="border-t border-surface-variant"
+          className="border-t border-slate-200"
         >
           <div className="p-5 space-y-6">
             {/* Stats row */}
@@ -205,18 +205,18 @@ function TemplateDetailCard({ template: t }: { template: TemplateRow }) {
             {/* Identity & core workflow */}
             {t.identity && (
               <div>
-                <div className="text-label-sm font-semibold text-on-surface-variant mb-1">
+                <div className="text-xs font-semibold text-slate-500 mb-1">
                   Why this template
                 </div>
-                <p className="text-body-md text-on-surface">{t.identity}</p>
+                <p className="text-sm text-slate-900">{t.identity}</p>
               </div>
             )}
             {t.core_workflow && (
               <div>
-                <div className="text-label-sm font-semibold text-on-surface-variant mb-1">
+                <div className="text-xs font-semibold text-slate-500 mb-1">
                   Core workflow
                 </div>
-                <p className="text-body-md text-on-surface font-mono bg-surface-container-low rounded-lg px-3 py-2">
+                <p className="text-sm text-slate-900 font-mono bg-slate-50 rounded-2xl px-3 py-2">
                   {t.core_workflow}
                 </p>
               </div>
@@ -225,11 +225,11 @@ function TemplateDetailCard({ template: t }: { template: TemplateRow }) {
             {/* 7 Artifacts checklist */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="text-label-sm font-semibold text-on-surface-variant">
+                <div className="text-xs font-semibold text-slate-500">
                   7 Mandatory Artifacts (PRD §7.1)
                 </div>
                 <span className={
-                  "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
+                  "px-2 py-0.5 rounded-full text-xs font-semibold " +
                   (artifactsComplete === t.artifacts.length
                     ? "bg-emerald-100 text-emerald-800"
                     : "bg-amber-100 text-amber-800")
@@ -243,23 +243,23 @@ function TemplateDetailCard({ template: t }: { template: TemplateRow }) {
             {/* Supported examples */}
             {t.supported_examples.length > 0 && (
               <div>
-                <div className="text-label-sm font-semibold text-on-surface-variant mb-2">
+                <div className="text-xs font-semibold text-slate-500 mb-2">
                   Supported product examples ({t.supported_examples.length})
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {t.supported_examples.map((ex) => (
                     <div
                       key={ex.name}
-                      className="flex items-start gap-2 bg-surface-container-low rounded-lg px-3 py-2"
+                      className="flex items-start gap-2 bg-slate-50 rounded-2xl px-3 py-2"
                     >
-                      <span className="material-symbols-outlined text-secondary flex-none mt-0.5" style={{ fontSize: 16 }}>
+                      <span className="material-symbols-outlined text-blue-600 flex-none mt-0.5" style={{ fontSize: 16 }}>
                         category
                       </span>
                       <div className="min-w-0">
-                        <div className="text-body-md font-semibold text-on-surface truncate">
+                        <div className="text-sm font-semibold text-slate-900 truncate">
                           {ex.name}
                         </div>
-                        <div className="text-label-sm text-on-surface-variant">
+                        <div className="text-xs text-slate-500">
                           {ex.description}
                         </div>
                       </div>
@@ -271,7 +271,7 @@ function TemplateDetailCard({ template: t }: { template: TemplateRow }) {
 
             {/* Governance notes */}
             {t.governance_notes && (
-              <div className="text-label-sm text-on-surface-variant italic">
+              <div className="text-xs text-slate-500 italic">
                 {t.governance_notes}
               </div>
             )}
@@ -293,9 +293,9 @@ function ArtifactsList({ artifacts }: { artifacts: ArtifactStatus[] }) {
           <motion.div
             key={a.name}
             variants={fadeUpSm}
-            className="flex items-start gap-3 px-3 py-2 rounded-lg bg-surface-container-low"
+            className="flex items-start gap-3 px-3 py-2 rounded-2xl bg-slate-50"
           >
-            <span className="text-label-sm font-bold text-on-surface-variant w-5 flex-none pt-0.5">
+            <span className="text-xs font-bold text-slate-500 w-5 flex-none pt-0.5">
               {i + 1}
             </span>
             <span
@@ -305,16 +305,16 @@ function ArtifactsList({ artifacts }: { artifacts: ArtifactStatus[] }) {
               {statusInfo.icon}
             </span>
             <div className="flex-1 min-w-0">
-              <div className="text-body-md font-semibold text-on-surface">{a.name}</div>
-              <div className="text-label-sm text-on-surface-variant">{a.description}</div>
+              <div className="text-sm font-semibold text-slate-900">{a.name}</div>
+              <div className="text-xs text-slate-500">{a.description}</div>
             </div>
             <span className={
-              "px-2 py-0.5 rounded-full text-label-sm font-semibold flex-none " +
+              "px-2 py-0.5 rounded-full text-xs font-semibold flex-none " +
               (a.status === "complete"
                 ? "bg-emerald-100 text-emerald-800"
                 : a.status === "in_progress"
                   ? "bg-amber-100 text-amber-800"
-                  : "bg-surface-container text-on-surface-variant")
+                  : "bg-slate-100 text-slate-500")
             }>
               {a.status.replace(/_/g, " ")}
             </span>
@@ -327,9 +327,9 @@ function ArtifactsList({ artifacts }: { artifacts: ArtifactStatus[] }) {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-surface-container-low rounded-lg px-3 py-2">
-      <div className="text-label-sm text-on-surface-variant">{label}</div>
-      <div className="font-semibold text-body-md text-on-surface">{value}</div>
+    <div className="bg-slate-50 rounded-2xl px-3 py-2">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="font-semibold text-sm text-slate-900">{value}</div>
     </div>
   );
 }

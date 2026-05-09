@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createContext,
@@ -57,7 +57,7 @@ export function LanguageSwitcher() {
     <button
       type="button"
       onClick={() => setLocale(locale === "en" ? "de" : "en")}
-      className="px-2 py-1 rounded-lg text-label-sm font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors"
+      className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-900-variant hover:bg-slate-50 transition-colors"
       title={locale === "en" ? "Zu Deutsch wechseln" : "Switch to English"}
     >
       {locale === "en" ? "DE" : "EN"}

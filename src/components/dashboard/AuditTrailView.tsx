@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -10,8 +10,8 @@ import { fadeUp, fadeUpSm, stagger } from "./motion";
 const STATUS_TONE: Record<string, string> = {
   ok: "bg-emerald-100 text-emerald-800",
   success: "bg-emerald-100 text-emerald-800",
-  failed: "bg-error-container text-on-error-container",
-  error: "bg-error-container text-on-error-container",
+  failed: "bg-red-50 text-red-700",
+  error: "bg-red-50 text-red-700",
   running: "bg-amber-100 text-amber-800",
 };
 
@@ -67,9 +67,9 @@ export function AuditTrailView({
       className="space-y-6"
     >
       <motion.div variants={fadeUp}>
-        <h1 className="font-h1 text-h1 text-primary">Audit Trail</h1>
-        <p className="text-on-surface-variant mt-1.5 max-w-3xl">
-          Every <code className="font-mono text-label-sm">agent_runs</code> row
+        <h1 className="text-2xl font-bold text-slate-900">Audit Trail</h1>
+        <p className="text-slate-500 mt-1.5 max-w-3xl">
+          Every <code className="font-mono text-xs">agent_runs</code> row
           attributable to your portfolio. Click any row to inspect input/output
           payloads and ledgered cost.
         </p>
@@ -77,7 +77,7 @@ export function AuditTrailView({
 
       <motion.section
         variants={fadeUp}
-        className="bg-white rounded-xl border border-surface-variant p-5"
+        className="bg-white rounded-2xl border border-slate-200 p-5"
       >
         <form
           method="get"
@@ -85,13 +85,13 @@ export function AuditTrailView({
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end"
         >
           <div>
-            <label className="text-label-sm font-semibold text-on-surface-variant block mb-1">
+            <label className="text-xs font-semibold text-slate-500 block mb-1">
               Agent
             </label>
             <select
               name="agent"
               defaultValue={filters.agent}
-              className="w-full px-3 py-2 rounded-lg bg-surface-container-low border border-surface-variant text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               <option value="">All agents</option>
               {agents.map((a) => (
@@ -102,13 +102,13 @@ export function AuditTrailView({
             </select>
           </div>
           <div>
-            <label className="text-label-sm font-semibold text-on-surface-variant block mb-1">
+            <label className="text-xs font-semibold text-slate-500 block mb-1">
               Product
             </label>
             <select
               name="product"
               defaultValue={filters.product}
-              className="w-full px-3 py-2 rounded-lg bg-surface-container-low border border-surface-variant text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               <option value="">All products</option>
               {productSlugs.map((s) => (
@@ -119,13 +119,13 @@ export function AuditTrailView({
             </select>
           </div>
           <div>
-            <label className="text-label-sm font-semibold text-on-surface-variant block mb-1">
+            <label className="text-xs font-semibold text-slate-500 block mb-1">
               Since
             </label>
             <select
               name="since"
               defaultValue={filters.since}
-              className="w-full px-3 py-2 rounded-lg bg-surface-container-low border border-surface-variant text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               {SINCE_LABELS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -135,13 +135,13 @@ export function AuditTrailView({
             </select>
           </div>
           <div>
-            <label className="text-label-sm font-semibold text-on-surface-variant block mb-1">
+            <label className="text-xs font-semibold text-slate-500 block mb-1">
               Status
             </label>
             <select
               name="status"
               defaultValue={filters.status}
-              className="w-full px-3 py-2 rounded-lg bg-surface-container-low border border-surface-variant text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               <option value="all">All</option>
               <option value="ok">Success</option>
@@ -151,13 +151,13 @@ export function AuditTrailView({
           <div className="flex items-center gap-2">
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-body-md hover:opacity-90"
+              className="px-4 py-2 rounded-2xl bg-slate-900 text-white font-semibold text-sm hover:opacity-90"
             >
               Apply
             </button>
             <Link
               href="/dashboard/audit"
-              className="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low text-label-sm font-semibold"
+              className="px-3 py-2 rounded-2xl text-slate-500 hover:bg-slate-50 text-xs font-semibold"
             >
               Clear
             </Link>
@@ -167,7 +167,7 @@ export function AuditTrailView({
 
       <motion.div
         variants={fadeUp}
-        className="flex items-center justify-between text-label-sm text-on-surface-variant"
+        className="flex items-center justify-between text-xs text-slate-500"
       >
         <span>
           Showing {runs.length} run{runs.length === 1 ? "" : "s"} · ledgered
@@ -182,18 +182,18 @@ export function AuditTrailView({
       {runs.length === 0 ? (
         <motion.div
           variants={fadeUp}
-          className="bg-white rounded-xl border border-surface-variant p-10 text-center"
+          className="bg-white rounded-2xl border border-slate-200 p-10 text-center"
         >
           <span
-            className="material-symbols-outlined text-on-surface-variant"
+            className="material-symbols-outlined text-slate-500"
             style={{ fontSize: 36 }}
           >
             fact_check
           </span>
-          <h3 className="font-h3 text-h3 text-on-surface mt-2">
+          <h3 className="text-lg font-semibold text-slate-900 mt-2">
             No agent runs match
           </h3>
-          <p className="text-on-surface-variant mt-1 max-w-md mx-auto text-body-md">
+          <p className="text-slate-500 mt-1 max-w-md mx-auto text-sm">
             Try widening the time range or clearing filters. New activity
             appears as you generate ideas, dispatch builds, or approve
             launches.
@@ -202,58 +202,58 @@ export function AuditTrailView({
       ) : (
         <motion.ul
           variants={stagger(0.04, 0.04)}
-          className="bg-white rounded-xl border border-surface-variant divide-y divide-surface-variant"
+          className="bg-white rounded-2xl border border-slate-200 divide-y divide-surface-variant"
         >
           {runs.map((r) => (
             <motion.li key={r.id} variants={fadeUpSm}>
               <details className="group">
-                <summary className="px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-surface-container-low/40 transition-colors list-none">
+                <summary className="px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-slate-50/50 transition-colors list-none">
                   <span
-                    className="material-symbols-outlined text-on-surface-variant transition-transform group-open:rotate-90 flex-none"
+                    className="material-symbols-outlined text-slate-500 transition-transform group-open:rotate-90 flex-none"
                     style={{ fontSize: 16 }}
                   >
                     chevron_right
                   </span>
-                  <div className="text-label-sm font-mono text-on-surface-variant w-32 flex-none tabular-nums">
+                  <div className="text-xs font-mono text-slate-500 w-32 flex-none tabular-nums">
                     {formatTime(r.created_at)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-on-surface">
+                      <span className="font-semibold text-slate-900">
                         {r.agent}
                       </span>
-                      <span className="font-mono text-label-sm text-on-surface-variant">
+                      <span className="font-mono text-xs text-slate-500">
                         {r.task_name}
                       </span>
                       <span
                         className={
-                          "px-2 py-0.5 rounded-full text-label-sm font-semibold " +
+                          "px-2 py-0.5 rounded-full text-xs font-semibold " +
                           (STATUS_TONE[r.status] ??
-                            "bg-surface-container text-on-surface-variant")
+                            "bg-slate-100 text-slate-500")
                         }
                       >
                         {r.status}
                       </span>
                       {r.product_slug ? (
-                        <span className="font-mono text-label-sm bg-surface-container-low px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs bg-slate-50 px-1.5 py-0.5 rounded">
                           {r.product_slug}
                         </span>
                       ) : null}
                     </div>
                   </div>
-                  <div className="text-label-sm font-mono text-on-surface-variant flex-none tabular-nums">
+                  <div className="text-xs font-mono text-slate-500 flex-none tabular-nums">
                     €{Number(r.cost_eur || 0).toFixed(4)}
                   </div>
                 </summary>
-                <div className="px-12 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-3 text-label-sm">
+                <div className="px-12 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
                   <JsonBlock label="Input" value={r.input} />
                   <JsonBlock label="Output" value={r.output} />
                   {r.error_message ? (
-                    <div className="lg:col-span-2 px-3 py-2 rounded-lg bg-error-container text-on-error-container">
+                    <div className="lg:col-span-2 px-3 py-2 rounded-2xl bg-red-50 text-red-700">
                       <strong>Error:</strong> {r.error_message}
                     </div>
                   ) : null}
-                  <div className="lg:col-span-2 text-on-surface-variant">
+                  <div className="lg:col-span-2 text-slate-500">
                     {r.llm_model ? (
                       <>
                         <span className="font-semibold">Model:</span>{" "}
@@ -279,7 +279,7 @@ export function AuditTrailView({
         {page > 1 ? (
           <Link
             href={`/dashboard/audit?${prevQS.toString()}`}
-            className="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low text-label-sm font-semibold inline-flex items-center gap-1"
+            className="px-3 py-2 rounded-2xl text-slate-500 hover:bg-slate-50 text-xs font-semibold inline-flex items-center gap-1"
           >
             <span
               className="material-symbols-outlined"
@@ -295,7 +295,7 @@ export function AuditTrailView({
         {hasNext ? (
           <Link
             href={`/dashboard/audit?${nextQS.toString()}`}
-            className="px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-low text-label-sm font-semibold inline-flex items-center gap-1"
+            className="px-3 py-2 rounded-2xl text-slate-500 hover:bg-slate-50 text-xs font-semibold inline-flex items-center gap-1"
           >
             Older
             <span
@@ -322,10 +322,10 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
   }
   return (
     <div>
-      <span className="text-label-sm font-semibold text-on-surface-variant">
+      <span className="text-xs font-semibold text-slate-500">
         {label}
       </span>
-      <pre className="mt-1 px-3 py-2 rounded-lg bg-surface-container-low text-label-sm font-mono whitespace-pre-wrap break-words max-h-72 overflow-auto">
+      <pre className="mt-1 px-3 py-2 rounded-2xl bg-slate-50 text-xs font-mono whitespace-pre-wrap break-words max-h-72 overflow-auto">
         {pretty}
       </pre>
     </div>

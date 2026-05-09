@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useActionState, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -29,28 +29,28 @@ export default function ProductAuth() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-container-low flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h1 className="font-bold text-2xl text-primary">{slug}</h1>
-          <p className="text-on-surface-variant mt-1">Monitoring-SaaS</p>
+          <h1 className="font-bold text-2xl text-slate-900">{slug}</h1>
+          <p className="text-slate-900-variant mt-1">Monitoring-SaaS</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-surface-variant p-6">
-          <div className="flex mb-6 border-b border-surface-variant">
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <div className="flex mb-6 border-b border-slate-200">
             <button
               type="button"
               onClick={() => setMode("signin")}
-              className={"pb-2 px-4 font-semibold text-body-md border-b-2 transition-colors " +
-                (mode === "signin" ? "border-primary text-primary" : "border-transparent text-on-surface-variant")}
+              className={"pb-2 px-4 font-semibold text-sm border-b-2 transition-colors " +
+                (mode === "signin" ? "border-primary text-slate-900" : "border-transparent text-slate-900-variant")}
             >
               Sign In
             </button>
             <button
               type="button"
               onClick={() => setMode("signup")}
-              className={"pb-2 px-4 font-semibold text-body-md border-b-2 transition-colors " +
-                (mode === "signup" ? "border-primary text-primary" : "border-transparent text-on-surface-variant")}
+              className={"pb-2 px-4 font-semibold text-sm border-b-2 transition-colors " +
+                (mode === "signup" ? "border-primary text-slate-900" : "border-transparent text-slate-900-variant")}
             >
               Sign Up
             </button>
@@ -64,12 +64,12 @@ export default function ProductAuth() {
               <button
                 type="submit"
                 disabled={signinPending}
-                className="w-full px-4 py-2.5 rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 disabled:opacity-60"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 text-white font-semibold hover:opacity-90 disabled:opacity-60"
               >
                 {signinPending ? "Signing in..." : "Sign In"}
               </button>
               {signinState && !signinState.ok && (
-                <p className="text-error text-label-sm">{signinState.message}</p>
+                <p className="text-red-500 text-xs">{signinState.message}</p>
               )}
             </form>
           ) : (
@@ -81,12 +81,12 @@ export default function ProductAuth() {
               <button
                 type="submit"
                 disabled={signupPending}
-                className="w-full px-4 py-2.5 rounded-lg bg-primary text-on-primary font-semibold hover:opacity-90 disabled:opacity-60"
+                className="w-full px-4 py-2.5 rounded-lg bg-slate-900 text-white font-semibold hover:opacity-90 disabled:opacity-60"
               >
                 {signupPending ? "Creating account..." : "Create Account"}
               </button>
               {signupState && !signupState.ok && (
-                <p className="text-error text-label-sm">{signupState.message}</p>
+                <p className="text-red-500 text-xs">{signupState.message}</p>
               )}
             </form>
           )}
@@ -99,14 +99,14 @@ export default function ProductAuth() {
 function Input({ label, name, type = "text", hint }: { label: string; name: string; type?: string; hint?: string }) {
   return (
     <div>
-      <label className="block text-label-sm font-semibold text-on-surface-variant mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-slate-900-variant mb-1">{label}</label>
       <input
         type={type}
         name={name}
         required
-        className="w-full rounded-lg border border-surface-variant px-3 py-2.5 text-body-md focus:outline-none focus:border-primary"
+        className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
       />
-      {hint && <p className="text-label-sm text-on-surface-variant mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-slate-900-variant mt-1">{hint}</p>}
     </div>
   );
 }

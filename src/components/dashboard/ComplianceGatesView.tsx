@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { useActionState } from "react";
@@ -48,7 +48,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: string; description
 const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: string }> = {
   complete: { label: "Complete", cls: "bg-emerald-100 text-emerald-800", icon: "check_circle" },
   in_progress: { label: "In Progress", cls: "bg-amber-100 text-amber-800", icon: "pending" },
-  not_started: { label: "Not Started", cls: "bg-surface-container text-on-surface-variant", icon: "radio_button_unchecked" },
+  not_started: { label: "Not Started", cls: "bg-slate-100 text-slate-500", icon: "radio_button_unchecked" },
 };
 
 export function ComplianceGatesView({ checks, summary, unsubStats }: Props) {
@@ -68,8 +68,8 @@ export function ComplianceGatesView({ checks, summary, unsubStats }: Props) {
       className="space-y-6"
     >
       <motion.div variants={fadeUp}>
-        <h1 className="font-h1 text-h1 text-primary">Compliance Gates</h1>
-        <p className="text-on-surface-variant mt-1.5 max-w-3xl">
+        <h1 className="text-2xl font-bold text-slate-900">Compliance Gates</h1>
+        <p className="text-slate-500 mt-1.5 max-w-3xl">
           Hard gates before activating regulated channels. No bypass — these
           protect the holding from legal and reputational risk. Every status
           change is audit-logged.
@@ -106,30 +106,30 @@ export function ComplianceGatesView({ checks, summary, unsubStats }: Props) {
       </motion.div>
 
       {/* Unsubscribe ledger stats */}
-      <motion.div variants={fadeUp} className="bg-white rounded-xl border border-surface-variant p-5">
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 p-5">
         <div className="flex items-center gap-2 mb-3">
-          <span className="material-symbols-outlined text-secondary" style={{ fontSize: 22 }}>
+          <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>
             unsubscribe
           </span>
-          <h2 className="font-h3 text-h3 text-on-surface">
+          <h2 className="text-lg font-semibold text-slate-900">
             Holding-Wide Unsubscribe Ledger (A-12)
           </h2>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-surface-container-low rounded-lg px-3 py-2">
-            <div className="text-label-sm text-on-surface-variant">Blocked addresses</div>
-            <div className="font-semibold text-body-lg text-on-surface">{unsubStats.total_entries}</div>
+          <div className="bg-slate-50 rounded-2xl px-3 py-2">
+            <div className="text-xs text-slate-500">Blocked addresses</div>
+            <div className="font-semibold text-base text-slate-900">{unsubStats.total_entries}</div>
           </div>
-          <div className="bg-surface-container-low rounded-lg px-3 py-2">
-            <div className="text-label-sm text-on-surface-variant">Last entry</div>
-            <div className="font-semibold text-body-lg text-on-surface">
+          <div className="bg-slate-50 rounded-2xl px-3 py-2">
+            <div className="text-xs text-slate-500">Last entry</div>
+            <div className="font-semibold text-base text-slate-900">
               {unsubStats.last_entry_at
                 ? new Date(unsubStats.last_entry_at).toLocaleDateString()
                 : "No entries yet"}
             </div>
           </div>
         </div>
-        <p className="text-label-sm text-on-surface-variant mt-3">
+        <p className="text-xs text-slate-500 mt-3">
           Hashed email, lookup-only access. An unsubscribe in any product blocks
           sends from all current and future products in the holding. No bulk
           export, no cross-product enumeration.
@@ -149,28 +149,28 @@ export function ComplianceGatesView({ checks, summary, unsubStats }: Props) {
               key={category}
               variants={fadeUp}
               className={
-                "bg-white rounded-xl border p-5 " +
-                (isColdEmail ? "border-error/30" : "border-surface-variant")
+                "bg-white rounded-2xl border p-5 " +
+                (isColdEmail ? "border-error/30" : "border-slate-200")
               }
             >
               <div className="flex items-center gap-2 mb-1">
                 <span
                   className={
                     "material-symbols-outlined " +
-                    (isColdEmail ? "text-error" : "text-secondary")
+                    (isColdEmail ? "text-red-500" : "text-blue-600")
                   }
                   style={{ fontSize: 22 }}
                 >
                   {catCfg.icon}
                 </span>
-                <h2 className="font-h3 text-h3 text-on-surface">{catCfg.label}</h2>
+                <h2 className="text-lg font-semibold text-slate-900">{catCfg.label}</h2>
                 {isColdEmail && (
-                  <span className="px-2 py-0.5 rounded-full bg-error-container text-on-error-container text-label-sm font-semibold">
+                  <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
                     V2 Locked
                   </span>
                 )}
               </div>
-              <p className="text-on-surface-variant text-body-md mb-4">
+              <p className="text-slate-500 text-sm mb-4">
                 {catCfg.description}
               </p>
 
@@ -192,14 +192,14 @@ export function ComplianceGatesView({ checks, summary, unsubStats }: Props) {
       {/* Cold email warning */}
       <motion.div
         variants={fadeUp}
-        className="bg-error-container/20 rounded-lg p-4 border border-error/20"
+        className="bg-red-50/20 rounded-2xl p-4 border border-error/20"
       >
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-error flex-none" style={{ fontSize: 20 }}>
+          <span className="material-symbols-outlined text-red-500 flex-none" style={{ fontSize: 20 }}>
             warning
           </span>
-          <div className="text-body-md text-on-surface-variant">
-            <span className="font-semibold text-on-surface">Cold email (PRD §8.6, A-08):</span>{" "}
+          <div className="text-sm text-slate-500">
+            <span className="font-semibold text-slate-900">Cold email (PRD §8.6, A-08):</span>{" "}
             No cold-email sending pathway is reachable in production until all V2
             compliance gates are green. Cold email at scale in the EU without a
             lawyer-reviewed framework is a legal and reputational risk that can
@@ -223,19 +223,19 @@ function CheckRow({ check: c }: { check: ComplianceCheck }) {
   return (
     <motion.div
       variants={fadeUpSm}
-      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-surface-container-low"
+      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl bg-slate-50"
     >
       <div className="flex items-center gap-3 min-w-0">
         <span
-          className={"material-symbols-outlined " + (c.status === "complete" ? "text-emerald-500" : c.status === "in_progress" ? "text-amber-500" : "text-on-surface-variant")}
+          className={"material-symbols-outlined " + (c.status === "complete" ? "text-emerald-500" : c.status === "in_progress" ? "text-amber-500" : "text-slate-500")}
           style={{ fontSize: 20 }}
         >
           {statusCfg.icon}
         </span>
         <div className="min-w-0">
-          <div className="text-body-md text-on-surface font-medium">{c.name}</div>
+          <div className="text-sm text-slate-900 font-medium">{c.name}</div>
           {c.description && (
-            <div className="text-label-sm text-on-surface-variant truncate max-w-lg">
+            <div className="text-xs text-slate-500 truncate max-w-lg">
               {c.description}
             </div>
           )}
@@ -243,10 +243,10 @@ function CheckRow({ check: c }: { check: ComplianceCheck }) {
       </div>
 
       <div className="flex items-center gap-2 flex-none">
-        <span className="px-2 py-0.5 rounded-full text-label-sm font-semibold bg-secondary-fixed text-secondary">
+        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">
           {c.required_for.toUpperCase()}
         </span>
-        <span className={"px-2 py-0.5 rounded-full text-label-sm font-semibold " + statusCfg.cls}>
+        <span className={"px-2 py-0.5 rounded-full text-xs font-semibold " + statusCfg.cls}>
           {statusCfg.label}
         </span>
         {nextStatus && (
@@ -256,7 +256,7 @@ function CheckRow({ check: c }: { check: ComplianceCheck }) {
             <button
               type="submit"
               disabled={pending}
-              className="px-2.5 py-1 rounded-lg border border-surface-variant text-label-sm font-semibold text-on-surface-variant hover:bg-white disabled:opacity-60 inline-flex items-center gap-1"
+              className="px-2.5 py-1 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-500 hover:bg-white disabled:opacity-60 inline-flex items-center gap-1"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
                 {pending ? "hourglass_top" : "arrow_forward"}
@@ -266,7 +266,7 @@ function CheckRow({ check: c }: { check: ComplianceCheck }) {
           </form>
         )}
         {state && !state.ok && (
-          <span className="text-error text-label-sm">{state.message}</span>
+          <span className="text-red-500 text-xs">{state.message}</span>
         )}
       </div>
     </motion.div>
@@ -284,14 +284,14 @@ function StatCard({
   tone?: "neutral" | "good" | "warn";
 }) {
   return (
-    <motion.div variants={scaleIn} className="bg-white rounded-xl border border-surface-variant p-4">
+    <motion.div variants={scaleIn} className="bg-white rounded-2xl border border-slate-200 p-4">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-secondary" style={{ fontSize: 18 }}>{icon}</span>
-        <span className="text-label-sm text-on-surface-variant">{label}</span>
+        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 18 }}>{icon}</span>
+        <span className="text-xs text-slate-500">{label}</span>
       </div>
       <div className={
         "font-display text-2xl font-bold leading-none " +
-        (tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : "text-primary")
+        (tone === "good" ? "text-emerald-600" : tone === "warn" ? "text-amber-600" : "text-slate-900")
       }>
         {value}
       </div>
@@ -309,23 +309,23 @@ function ProgressCard({
   required: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-surface-variant p-4">
+    <div className="bg-white rounded-2xl border border-slate-200 p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="font-semibold text-body-md text-on-surface">{label}</span>
-        <span className="text-label-sm text-on-surface-variant">
+        <span className="font-semibold text-sm text-slate-900">{label}</span>
+        <span className="text-xs text-slate-500">
           {current} / {total}
           {required && " (required for launch)"}
         </span>
       </div>
-      <div className="h-2 bg-surface-variant rounded-full overflow-hidden">
+      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
         <motion.div
-          className={pct === 100 ? "h-full bg-emerald-500" : "h-full bg-secondary"}
+          className={pct === 100 ? "h-full bg-emerald-500" : "h-full bg-blue-600"}
           initial={{ width: "0%" }}
           animate={{ width: `${Math.min(100, pct)}%` }}
           transition={{ duration: 0.8, ease: easeOut }}
         />
       </div>
-      <div className="text-label-sm text-on-surface-variant mt-1">
+      <div className="text-xs text-slate-500 mt-1">
         {pct.toFixed(0)}% complete
       </div>
     </div>
