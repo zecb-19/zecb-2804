@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useActionState, useState } from "react";
 
 import {
@@ -44,7 +44,14 @@ export function IdeaInboxView({
   counts: Record<IdeaStatus, number>;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
+  const [tab, setTab] = useState<"latest" | "all">("latest");
+
   const filtered = ideas.filter((i) => filter === "all" || i.status === filter);
+
+  const latestBatchId = ideas.length > 0 ? ideas[0].generation_request_id : null;
+  const latestBatch = filtered.filter((i) => i.generation_request_id === latestBatchId);
+  const pastIdeas = filtered.filter((i) => i.generation_request_id !== latestBatchId);
+  const displayedIdeas = tab === "latest" && latestBatchId ? latestBatch : filtered;
 
   return (
     <motion.div initial="hidden" animate="visible" variants={stagger()} className="space-y-6">
@@ -57,6 +64,23 @@ export function IdeaInboxView({
 
       <GenerateIdeasForm />
 
+      {/* Tabs: Latest vs All History */}
+      {ideas.length > 3 && (
+        <motion.div variants={fadeUp} className="flex items-center gap-2">
+          <div className="flex bg-slate-100 rounded-xl p-1">
+            <button type="button" onClick={() => setTab("latest")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "latest" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+              Latest ({latestBatch.length})
+            </button>
+            <button type="button" onClick={() => setTab("all")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "all" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+              All History ({ideas.length})
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Status filters */}
       <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-2">
         <FilterPill label={`All (${ideas.length})`} active={filter === "all"} onClick={() => setFilter("all")} />
         <FilterPill label={`Pending (${counts.pending})`} active={filter === "pending"} onClick={() => setFilter("pending")} />
@@ -65,7 +89,7 @@ export function IdeaInboxView({
         <FilterPill label={`Rejected (${counts.rejected})`} active={filter === "rejected"} onClick={() => setFilter("rejected")} />
       </motion.div>
 
-      {filtered.length === 0 ? (
+      {displayedIdeas.length === 0 ? (
         <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
             <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 28 }}>inbox</span>
@@ -81,10 +105,21 @@ export function IdeaInboxView({
         </motion.div>
       ) : (
         <motion.ul variants={stagger(0.05, 0.06)} className="space-y-4">
-          {filtered.map((idea) => (
+          {displayedIdeas.map((idea) => (
             <IdeaCard key={idea.id} idea={idea} />
           ))}
         </motion.ul>
+      )}
+
+      {/* Past batches section when on Latest tab */}
+      {tab === "latest" && pastIdeas.length > 0 && (
+        <motion.div variants={fadeUp}>
+          <button type="button" onClick={() => setTab("all")}
+            className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600 transition-colors text-sm font-semibold flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>history</span>
+            View {pastIdeas.length} past ideas
+          </button>
+        </motion.div>
       )}
     </motion.div>
   );
@@ -204,6 +239,7 @@ function GenerateIdeasForm() {
 function IdeaCard({ idea }: { idea: IdeaRow }) {
   const [approveState, approveAction, approvePending] = useActionState(approveIdeaAction, initialReviewState);
   const [rejectState, rejectAction, rejectPending] = useActionState(rejectIdeaAction, initialReviewState);
+  const [expanded, setExpanded] = useState(false);
 
   const tone = STATUS_TONE[idea.status];
   const ue = idea.unit_economics;
@@ -212,11 +248,15 @@ function IdeaCard({ idea }: { idea: IdeaRow }) {
     (rejectState && !rejectState.ok ? rejectState.message : null);
 
   return (
-    <motion.li variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="px-6 pt-5 pb-4">
+    <motion.li variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden card-hover">
+      {/* Collapsed header — always visible */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full text-left px-6 py-5 cursor-pointer"
+      >
         <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-2">
               <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">{idea.vertical}</span>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${tone.cls}`}>{tone.label}</span>
@@ -228,31 +268,58 @@ function IdeaCard({ idea }: { idea: IdeaRow }) {
             <p className="text-sm text-slate-500 mt-1">
               For <span className="font-semibold text-slate-700">{idea.persona.role}</span> at {idea.persona.company_size} · {idea.persona.country}
             </p>
+            {/* Inline metrics preview when collapsed */}
+            {!expanded && (
+              <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
+                <span>CAC <span className={`font-semibold ${ue.estimated_cac_eur < 100 ? "text-emerald-600" : "text-slate-600"}`}>€{ue.estimated_cac_eur.toFixed(0)}</span></span>
+                <span>LTV <span className={`font-semibold ${ue.estimated_ltv_eur > 300 ? "text-emerald-600" : "text-slate-600"}`}>€{ue.estimated_ltv_eur.toFixed(0)}</span></span>
+                <span>Payback <span className={`font-semibold ${ue.estimated_payback_months <= 6 ? "text-emerald-600" : "text-slate-600"}`}>{ue.estimated_payback_months.toFixed(1)}mo</span></span>
+                <span className={`font-semibold capitalize ${ue.confidence === "high" ? "text-emerald-600" : "text-slate-600"}`}>{ue.confidence}</span>
+              </div>
+            )}
           </div>
-          <div className="text-xs text-slate-400 text-right flex-none font-mono">
-            €{Number(idea.cost_eur).toFixed(4)}
+          <div className="flex items-center gap-3 flex-none">
+            <span className="text-xs text-slate-400 font-mono">€{Number(idea.cost_eur).toFixed(4)}</span>
+            <motion.span
+              animate={{ rotate: expanded ? 90 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="material-symbols-outlined text-slate-400"
+              style={{ fontSize: 20 }}
+            >
+              chevron_right
+            </motion.span>
           </div>
         </div>
-      </div>
+      </button>
 
-      {/* Pain / Promise */}
-      <div className="px-6 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <InfoBlock label="Pain" text={idea.pain_statement} color="red" />
-        <InfoBlock label="Promise" text={idea.core_promise} color="emerald" />
-      </div>
+      {/* Expanded details */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            {/* Pain / Promise */}
+            <div className="px-6 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <InfoBlock label="Pain" text={idea.pain_statement} color="red" />
+              <InfoBlock label="Promise" text={idea.core_promise} color="emerald" />
+            </div>
 
-      {/* Unit Economics */}
-      <div className="px-6 pb-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <MetricCard label="CAC" value={`€${ue.estimated_cac_eur.toFixed(0)}`} good={ue.estimated_cac_eur < 100} />
-          <MetricCard label="LTV" value={`€${ue.estimated_ltv_eur.toFixed(0)}`} good={ue.estimated_ltv_eur > 300} />
-          <MetricCard label="Payback" value={`${ue.estimated_payback_months.toFixed(1)} mo`} good={ue.estimated_payback_months <= 6} />
-          <MetricCard label="Confidence" value={ue.confidence} good={ue.confidence === "high"} />
-        </div>
-      </div>
+            {/* Unit Economics */}
+            <div className="px-6 pb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <MetricCard label="CAC" value={`€${ue.estimated_cac_eur.toFixed(0)}`} good={ue.estimated_cac_eur < 100} />
+                <MetricCard label="LTV" value={`€${ue.estimated_ltv_eur.toFixed(0)}`} good={ue.estimated_ltv_eur > 300} />
+                <MetricCard label="Payback" value={`${ue.estimated_payback_months.toFixed(1)} mo`} good={ue.estimated_payback_months <= 6} />
+                <MetricCard label="Confidence" value={ue.confidence} good={ue.confidence === "high"} />
+              </div>
+            </div>
 
-      {/* Data sources + Pricing */}
-      <div className="px-6 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Data sources + Pricing */}
+            <div className="px-6 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Data Sources</span>
           <ul className="mt-2 space-y-1.5">
@@ -358,11 +425,14 @@ function IdeaCard({ idea }: { idea: IdeaRow }) {
         </div>
       </div>
 
-      {reviewError && (
-        <div className="px-6 pb-4">
-          <p className="text-red-500 text-xs">{reviewError}</p>
-        </div>
-      )}
+            {reviewError && (
+              <div className="px-6 pb-4">
+                <p className="text-red-500 text-xs">{reviewError}</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.li>
   );
 }
