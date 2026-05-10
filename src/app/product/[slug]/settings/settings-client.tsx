@@ -1,7 +1,14 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+
+import {
+  upgradePlanAction,
+  exportAllDataAction,
+  deleteAccountAction,
+  type AccountActionState,
+} from "@/app/actions/tenant-account";
 
 type PricingTier = { name: string; price_eur_monthly: number; limits: Record<string, number> };
 
@@ -42,8 +49,25 @@ async function saveChannelsAction(_prev: SaveState, formData: FormData): Promise
 
 export function SettingsClient({ slug, email, name, plan, channels, createdAt, pricingTiers }: Props) {
   const [state, action, pending] = useActionState(saveChannelsAction, undefined as SaveState);
-  const currentTier = pricingTiers.find((t) => t.name.toLowerCase() === plan.toLowerCase());
+  const [upgradeState, upgradeAction, upgradePending] = useActionState(upgradePlanAction, undefined as AccountActionState);
+  const [exportState, exportAction, exportPending] = useActionState(exportAllDataAction, undefined as AccountActionState);
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteAccountAction, undefined as AccountActionState);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const currentTier = pricingTiers.find((t) => t.name.toLowerCase() === (upgradeState?.ok ? "upgraded" : plan).toLowerCase()) ?? pricingTiers.find((t) => t.name.toLowerCase() === plan.toLowerCase());
+  const activePlan = upgradeState?.ok ? upgradeState.message.replace("Upgraded to ", "").replace("!", "").toLowerCase() : plan.toLowerCase();
   const initials = name.split(" ").map((n) => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+
+  function handleExportResult() {
+    if (exportState?.ok && exportState.data) {
+      const blob = new Blob([exportState.data], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug}-full-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }
 
   return (
     <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-6 max-w-3xl mx-auto">
@@ -86,7 +110,7 @@ export function SettingsClient({ slug, email, name, plan, channels, createdAt, p
           <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {pricingTiers.map((tier, i) => {
-                const isCurrent = tier.name.toLowerCase() === plan.toLowerCase();
+                const isCurrent = tier.name.toLowerCase() === activePlan;
                 const isUpgrade = tier.price_eur_monthly > (currentTier?.price_eur_monthly ?? 0);
                 const colors = [
                   { bg: "bg-slate-50", border: "border-slate-200", accent: "text-slate-600" },
@@ -147,10 +171,18 @@ export function SettingsClient({ slug, email, name, plan, channels, createdAt, p
                       )}
                     </ul>
                     {!isCurrent && isUpgrade && (
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                        className="w-full mt-4 py-2.5 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white text-sm font-semibold shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 transition-all">
-                        Upgrade to {tier.name}
-                      </motion.button>
+                      <form action={upgradeAction}>
+                        <input type="hidden" name="tier_name" value={tier.name} />
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={upgradePending}
+                          className="w-full mt-4 py-2.5 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white text-sm font-semibold shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 transition-all">
+                          {upgradePending ? "Upgrading..." : `Upgrade to ${tier.name}`}
+                        </motion.button>
+                      </form>
+                    )}
+                    {upgradeState?.ok && isCurrent && (
+                      <div className="mt-3 text-xs text-emerald-600 font-medium flex items-center gap-1">
+                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>{upgradeState.message}
+                      </div>
                     )}
                   </motion.div>
                 );
@@ -231,27 +263,70 @@ export function SettingsClient({ slug, email, name, plan, channels, createdAt, p
             </div>
           </div>
         </div>
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <motion.button whileHover={{ y: -2, transition: { duration: 0.15 } }}
-            className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-left group">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-              <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>download</span>
+        <div className="p-6 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form action={(formData) => { exportAction(formData); setTimeout(handleExportResult, 500); }}>
+              <motion.button whileHover={{ y: -2, transition: { duration: 0.15 } }} type="submit" disabled={exportPending}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-left group disabled:opacity-50">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+                  {exportPending
+                    ? <span className="w-5 h-5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                    : <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>download</span>}
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">{exportPending ? "Exporting..." : "Export All Data"}</div>
+                  <div className="text-xs text-slate-500">Observations, alerts, and rules as CSV</div>
+                </div>
+              </motion.button>
+            </form>
+            <motion.button whileHover={{ y: -2, transition: { duration: 0.15 } }} type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-red-200 hover:bg-red-50/30 transition-all text-left group">
+              <div className="w-10 h-10 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined text-red-500" style={{ fontSize: 22 }}>delete_forever</span>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-red-600">Delete Account</div>
+                <div className="text-xs text-red-400">Permanently remove all your data</div>
+              </div>
+            </motion.button>
+          </div>
+
+          {exportState?.ok && (
+            <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm flex items-center gap-2">
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>{exportState.message}
             </div>
-            <div>
-              <div className="text-sm font-semibold text-slate-900">Export All Data</div>
-              <div className="text-xs text-slate-500">Observations, alerts, and rules as CSV</div>
-            </div>
-          </motion.button>
-          <motion.button whileHover={{ y: -2, transition: { duration: 0.15 } }}
-            className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-red-200 hover:bg-red-50/30 transition-all text-left group">
-            <div className="w-10 h-10 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors">
-              <span className="material-symbols-outlined text-red-500" style={{ fontSize: 22 }}>delete_forever</span>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-red-600">Delete Account</div>
-              <div className="text-xs text-red-400">Permanently remove all your data</div>
-            </div>
-          </motion.button>
+          )}
+          {exportState && !exportState.ok && (
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm">{exportState.message}</div>
+          )}
+
+          <AnimatePresence>
+            {showDeleteConfirm && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200">
+                  <p className="text-sm text-red-700 font-medium mb-3">This will permanently delete all your data sources, observations, alerts, rules, and your account. This cannot be undone.</p>
+                  <form action={deleteAction} className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs font-medium text-red-600 mb-1 block">Type DELETE to confirm</label>
+                      <input name="confirmation" type="text" required placeholder="DELETE" className="w-full px-3 py-2 rounded-lg border border-red-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white" />
+                    </div>
+                    <button type="submit" disabled={deletePending}
+                      className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors flex-none">
+                      {deletePending ? "Deleting..." : "Delete Forever"}
+                    </button>
+                    <button type="button" onClick={() => setShowDeleteConfirm(false)}
+                      className="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm font-semibold hover:bg-slate-50 transition-colors flex-none">
+                      Cancel
+                    </button>
+                  </form>
+                  {deleteState && !deleteState.ok && (
+                    <p className="text-red-600 text-xs mt-2">{deleteState.message}</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </motion.div>
