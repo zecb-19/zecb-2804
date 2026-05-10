@@ -156,7 +156,7 @@ function RuleCard({ rule }: { rule: AlertRuleRow }) {
   const ct = CONDITION_TYPES.find((c) => c.value === rule.condition_type);
 
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all ${!rule.enabled ? "opacity-60" : ""}`}>
+    <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-5 card-hover glow-violet ${!rule.enabled ? "opacity-60" : ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${ct?.color ?? "from-slate-400 to-slate-500"} flex items-center justify-center flex-none shadow-sm`}>
@@ -183,8 +183,10 @@ function RuleCard({ rule }: { rule: AlertRuleRow }) {
         <form action={toggleAction}>
           <input type="hidden" name="rule_id" value={rule.id} />
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="submit" disabled={togglePending}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 ${rule.enabled ? "border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"}`}>
-            {rule.enabled ? "Disable" : "Enable"}
+            aria-label={rule.enabled ? `Disable ${rule.name}` : `Enable ${rule.name}`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 ${rule.enabled ? "border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"}`}>
+            {togglePending ? <span className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" /> : null}
+            {togglePending ? "Saving..." : rule.enabled ? "Disable" : "Enable"}
           </motion.button>
         </form>
       </div>

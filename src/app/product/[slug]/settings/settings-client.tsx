@@ -1,6 +1,9 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
 import { useActionState } from "react";
+
+type PricingTier = { name: string; price_eur_monthly: number; limits: Record<string, number> };
 
 type Props = {
   slug: string;
@@ -9,17 +12,22 @@ type Props = {
   plan: string;
   channels: string[];
   createdAt: string;
+  pricingTiers: PricingTier[];
 };
 
 type SaveState = { ok: true } | { ok: false; message: string } | undefined;
 
 const CHANNELS = [
-  { value: "email", icon: "mail", label: "Email", desc: "Receive alerts in your inbox" },
-  { value: "slack", icon: "chat", label: "Slack", desc: "Post to a Slack channel" },
-  { value: "webhook", icon: "webhook", label: "Webhook", desc: "POST to a custom URL" },
-  { value: "sms", icon: "sms", label: "SMS", desc: "Text message alerts" },
-  { value: "in_app", icon: "notifications", label: "In-App", desc: "Show in dashboard" },
+  { value: "email", icon: "mail", label: "Email", desc: "Receive alerts in your inbox", color: "from-blue-500 to-indigo-600" },
+  { value: "slack", icon: "chat", label: "Slack", desc: "Post to a Slack channel", color: "from-purple-500 to-violet-600" },
+  { value: "webhook", icon: "webhook", label: "Webhook", desc: "POST to a custom URL", color: "from-cyan-500 to-blue-600" },
+  { value: "sms", icon: "sms", label: "SMS", desc: "Text message alerts", color: "from-emerald-500 to-teal-600" },
+  { value: "in_app", icon: "notifications", label: "In-App", desc: "Show in dashboard", color: "from-amber-500 to-orange-600" },
 ];
+
+const ease = [0.22, 1, 0.36, 1] as const;
+const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease } } };
+const stagger = { hidden: {}, visible: { transition: { delayChildren: 0.05, staggerChildren: 0.08 } } };
 
 async function saveChannelsAction(_prev: SaveState, formData: FormData): Promise<SaveState> {
   const channels = formData.getAll("channels") as string[];
@@ -32,91 +40,220 @@ async function saveChannelsAction(_prev: SaveState, formData: FormData): Promise
   return { ok: true };
 }
 
-export function SettingsClient({ slug, email, name, plan, channels, createdAt }: Props) {
+export function SettingsClient({ slug, email, name, plan, channels, createdAt, pricingTiers }: Props) {
   const [state, action, pending] = useActionState(saveChannelsAction, undefined as SaveState);
+  const currentTier = pricingTiers.find((t) => t.name.toLowerCase() === plan.toLowerCase());
+  const initials = name.split(" ").map((n) => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="text-slate-500 mt-1">
-          Manage your account and notification preferences.
-        </p>
-      </div>
-
-      {/* Account info */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-slate-600" style={{ fontSize: 22 }}>person</span>
-          </div>
-          <h2 className="font-bold text-slate-900">Account</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-5">
-          {[
-            { label: "Name", value: name, icon: "badge" },
-            { label: "Email", value: email, icon: "mail" },
-            { label: "Plan", value: plan, icon: "workspace_premium" },
-            { label: "Member since", value: new Date(createdAt).toISOString().slice(0, 10), icon: "calendar_today" },
-          ].map((field) => (
-            <div key={field.label} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <span className="material-symbols-outlined text-slate-400 mt-0.5" style={{ fontSize: 16 }}>{field.icon}</span>
-              <div>
-                <div className="text-xs text-slate-500">{field.label}</div>
-                <div className="text-sm text-slate-900 font-medium capitalize">{field.value}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Notification channels */}
-      <form action={action} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-            <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>notifications</span>
+    <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-6 max-w-3xl mx-auto">
+      {/* Profile banner */}
+      <motion.div variants={fadeUp} className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(59,130,246,0.12),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(139,92,246,0.08),transparent_50%)]" />
+        <div className="relative flex items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-xl shadow-blue-500/30">
+            {initials}
           </div>
           <div>
-            <h2 className="font-bold text-slate-900">Notification Channels</h2>
-            <p className="text-sm text-slate-500">Choose how alerts are delivered to you</p>
+            <h1 className="text-2xl font-bold text-white">{name}</h1>
+            <p className="text-slate-400 mt-0.5">{email}</p>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="px-3 py-1 rounded-full bg-white/10 text-white text-xs font-semibold capitalize border border-white/10">{plan} Plan</span>
+              <span className="text-xs text-slate-500">Member since {new Date(createdAt).toISOString().slice(0, 10)}</span>
+            </div>
           </div>
         </div>
-        <div className="space-y-2">
-          {CHANNELS.map((ch) => (
-            <label key={ch.value} className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 cursor-pointer transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
-                  <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 18 }}>{ch.icon}</span>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-slate-900">{ch.label}</div>
-                  <div className="text-xs text-slate-400">{ch.desc}</div>
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                name="channels"
-                value={ch.value}
-                defaultChecked={channels.includes(ch.value)}
-                className="w-5 h-5 accent-slate-900 rounded"
-              />
-            </label>
-          ))}
-        </div>
+      </motion.div>
 
-        <div className="flex items-center gap-3 mt-5 pt-5 border-t border-slate-100">
-          <button type="submit" disabled={pending}
-            className="px-5 py-3 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white font-semibold text-sm shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 transition-all inline-flex items-center gap-2">
-            {pending ? (
-              <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
-            ) : (
-              <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>check</span>Save preferences</>
-            )}
-          </button>
-          {state?.ok && <span className="text-emerald-600 text-sm flex items-center gap-1"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>check_circle</span>Saved!</span>}
-          {state && !state.ok && <span className="text-red-500 text-xs">{state.message}</span>}
+      {/* Plan & Pricing */}
+      {pricingTiers.length > 0 && (
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>workspace_premium</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-900">Your Plan</h2>
+                <p className="text-sm text-slate-500">
+                  Currently on <span className="font-semibold text-slate-900 capitalize">{plan}</span>
+                  {currentTier && <> — €{currentTier.price_eur_monthly}/mo</>}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {pricingTiers.map((tier, i) => {
+                const isCurrent = tier.name.toLowerCase() === plan.toLowerCase();
+                const isUpgrade = tier.price_eur_monthly > (currentTier?.price_eur_monthly ?? 0);
+                const colors = [
+                  { bg: "bg-slate-50", border: "border-slate-200", accent: "text-slate-600" },
+                  { bg: "bg-blue-50/50", border: "border-blue-200", accent: "text-blue-600" },
+                  { bg: "bg-violet-50/50", border: "border-violet-200", accent: "text-violet-600" },
+                ][i] ?? { bg: "bg-slate-50", border: "border-slate-200", accent: "text-slate-600" };
+
+                return (
+                  <motion.div
+                    key={tier.name}
+                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                    className={`rounded-2xl border-2 p-5 transition-all relative ${
+                      isCurrent
+                        ? `${colors.border} ${colors.bg} ring-2 ring-blue-500/20`
+                        : "border-slate-200 card-hover glow-violet"
+                    }`}
+                  >
+                    {isCurrent && (
+                      <span className="absolute -top-2.5 right-4 px-3 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[10px] font-bold shadow-lg shadow-blue-500/30">
+                        CURRENT
+                      </span>
+                    )}
+                    <h3 className="font-bold text-slate-900 text-lg">{tier.name}</h3>
+                    <div className="mt-2 mb-4">
+                      <span className="text-3xl font-bold text-slate-900">€{tier.price_eur_monthly}</span>
+                      <span className="text-sm text-slate-400">/mo</span>
+                    </div>
+                    <ul className="space-y-2 text-sm">
+                      {tier.limits.max_data_sources !== undefined && (
+                        <li className="flex items-center gap-2 text-slate-600">
+                          <span className={`material-symbols-outlined ${colors.accent}`} style={{ fontSize: 16 }}>database</span>
+                          <span><span className="font-semibold">{tier.limits.max_data_sources}</span> sources</span>
+                        </li>
+                      )}
+                      {tier.limits.max_alert_rules !== undefined && (
+                        <li className="flex items-center gap-2 text-slate-600">
+                          <span className={`material-symbols-outlined ${colors.accent}`} style={{ fontSize: 16 }}>tune</span>
+                          <span><span className="font-semibold">{tier.limits.max_alert_rules}</span> rules</span>
+                        </li>
+                      )}
+                      {tier.limits.check_frequency_minutes !== undefined && (
+                        <li className="flex items-center gap-2 text-slate-600">
+                          <span className={`material-symbols-outlined ${colors.accent}`} style={{ fontSize: 16 }}>timer</span>
+                          Every <span className="font-semibold">{tier.limits.check_frequency_minutes >= 60 ? `${tier.limits.check_frequency_minutes / 60}h` : `${tier.limits.check_frequency_minutes}min`}</span>
+                        </li>
+                      )}
+                      {tier.limits.history_retention_days !== undefined && (
+                        <li className="flex items-center gap-2 text-slate-600">
+                          <span className={`material-symbols-outlined ${colors.accent}`} style={{ fontSize: 16 }}>history</span>
+                          <span><span className="font-semibold">{tier.limits.history_retention_days}</span> days</span>
+                        </li>
+                      )}
+                      {tier.limits.team_members !== undefined && (
+                        <li className="flex items-center gap-2 text-slate-600">
+                          <span className={`material-symbols-outlined ${colors.accent}`} style={{ fontSize: 16 }}>group</span>
+                          <span><span className="font-semibold">{tier.limits.team_members}</span> members</span>
+                        </li>
+                      )}
+                    </ul>
+                    {!isCurrent && isUpgrade && (
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        className="w-full mt-4 py-2.5 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white text-sm font-semibold shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 transition-all">
+                        Upgrade to {tier.name}
+                      </motion.button>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Notifications */}
+      <motion.div variants={fadeUp}>
+        <form action={action} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>notifications</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-900">Notification Channels</h2>
+                <p className="text-sm text-slate-500">Choose how alerts are delivered to you</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-2">
+            {CHANNELS.map((ch) => {
+              const isChecked = channels.includes(ch.value);
+              return (
+                <label key={ch.value} className={`flex items-center justify-between px-4 py-4 rounded-xl border-2 cursor-pointer transition-all group ${
+                  isChecked ? "border-blue-200 bg-blue-50/30" : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
+                }`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${ch.color} flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
+                      <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>{ch.icon}</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">{ch.label}</div>
+                      <div className="text-xs text-slate-500">{ch.desc}</div>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <input type="checkbox" name="channels" value={ch.value} defaultChecked={isChecked}
+                      className="sr-only peer" />
+                    <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-blue-500 transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform" />
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={pending}
+              className="px-6 py-3 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white font-semibold text-sm shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 transition-all inline-flex items-center gap-2">
+              {pending ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+                : <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>check</span>Save preferences</>}
+            </motion.button>
+            <AnimatePresence>
+              {state?.ok && (
+                <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="text-emerald-600 text-sm flex items-center gap-1.5 font-medium">
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>Saved!
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {state && !state.ok && <span className="text-red-500 text-xs">{state.message}</span>}
+          </div>
+        </form>
+      </motion.div>
+
+      {/* Data Management */}
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>storage</span>
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-900">Data Management</h2>
+              <p className="text-sm text-slate-500">Export or manage your data</p>
+            </div>
+          </div>
         </div>
-      </form>
-    </div>
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <motion.button whileHover={{ y: -2, transition: { duration: 0.15 } }}
+            className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-left group">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+              <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>download</span>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Export All Data</div>
+              <div className="text-xs text-slate-500">Observations, alerts, and rules as CSV</div>
+            </div>
+          </motion.button>
+          <motion.button whileHover={{ y: -2, transition: { duration: 0.15 } }}
+            className="flex items-center gap-4 p-4 rounded-xl border-2 border-slate-100 hover:border-red-200 hover:bg-red-50/30 transition-all text-left group">
+            <div className="w-10 h-10 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors">
+              <span className="material-symbols-outlined text-red-500" style={{ fontSize: 22 }}>delete_forever</span>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-red-600">Delete Account</div>
+              <div className="text-xs text-red-400">Permanently remove all your data</div>
+            </div>
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -26,7 +26,7 @@ export async function createDataSourceAction(
   if (!name || name.length < 2) return { ok: false, message: "Name is required (min 2 characters)." };
   if (!kind) return { ok: false, message: "Source type is required." };
 
-  const validKinds = ["http_api", "webscrape", "rss", "csv_upload", "pdf_watch"];
+  const validKinds = ["http_api", "webscrape", "rss", "csv_upload", "pdf_watch", "email_inbound", "google_sheets"];
   if (!validKinds.includes(kind)) return { ok: false, message: "Invalid source type." };
 
   if ((kind === "http_api" || kind === "webscrape" || kind === "rss" || kind === "pdf_watch") && !url) {

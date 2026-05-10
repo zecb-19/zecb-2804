@@ -126,6 +126,34 @@ body {
   display: none;
 }
 
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+.glow-blue:hover {
+  box-shadow: 0 20px 40px -12px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.glow-emerald:hover {
+  box-shadow: 0 20px 40px -12px rgba(16, 185, 129, 0.15), 0 0 0 1px rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.glow-amber:hover {
+  box-shadow: 0 20px 40px -12px rgba(245, 158, 11, 0.15), 0 0 0 1px rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.glow-violet:hover {
+  box-shadow: 0 20px 40px -12px rgba(139, 92, 246, 0.15), 0 0 0 1px rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined";
   font-weight: normal;

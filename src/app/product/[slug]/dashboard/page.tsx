@@ -150,13 +150,13 @@ export default async function TenantDashboard({
             ) : (
               <div className="space-y-2">
                 {data.recent_observations.map((obs) => (
-                  <div key={obs.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div key={obs.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-blue-50/40 hover:translate-x-1 transition-all duration-200 cursor-default">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-none" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-sm text-slate-900">{obs.source_name}</span>
                         <span className="text-xs font-mono text-slate-400">
-                          {new Date(obs.observed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {obs.observed_at.slice(11, 16)}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
@@ -206,7 +206,7 @@ export default async function TenantDashboard({
                 {data.recent_alerts.map((alert) => {
                   const isSent = alert.status === "sent";
                   return (
-                    <div key={alert.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div key={alert.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-amber-50/40 hover:translate-x-1 transition-all duration-200 cursor-default">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-none ${isSent ? "bg-amber-50" : "bg-slate-100"}`}>
                         <span
                           className={`material-symbols-outlined ${isSent ? "text-amber-500" : "text-slate-400"}`}
@@ -225,7 +225,7 @@ export default async function TenantDashboard({
                         <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{alert.message}</p>
                       </div>
                       <span className="text-xs text-slate-400 flex-none whitespace-nowrap">
-                        {new Date(alert.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        {alert.created_at.slice(0, 16).replace("T", " ")}
                       </span>
                     </div>
                   );
@@ -241,7 +241,7 @@ export default async function TenantDashboard({
 
 function StepItem({ done, label, description, href, action }: { done: boolean; label: string; description: string; href: string; action: string }) {
   return (
-    <div className={`flex items-center gap-4 py-3 px-3 rounded-xl ${done ? "bg-emerald-50/50" : "hover:bg-slate-50"} transition-colors`}>
+    <div className={`flex items-center gap-4 py-3 px-3 rounded-xl transition-all duration-200 ${done ? "bg-emerald-50/50" : "hover:bg-blue-50/30 hover:translate-x-1"}`}>
       <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-none ${done ? "bg-emerald-100" : "border-2 border-slate-200"}`}>
         {done && <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 18 }}>check</span>}
       </div>
@@ -285,12 +285,12 @@ function KpiCard({
   const c = COLOR_MAP[color];
   return (
     <Link href={href} className="group block">
-      <div className={`bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all ring-1 ${c.ring}`}>
+      <div className={`bg-white rounded-2xl border border-slate-200 p-5 shadow-sm ring-1 ${c.ring} transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-1.5 hover:border-transparent hover:ring-2`}>
         <div className="flex items-center justify-between">
-          <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center`}>
+          <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6`}>
             <span className={`material-symbols-outlined ${c.icon}`} style={{ fontSize: 22 }}>{icon}</span>
           </div>
-          <span className="material-symbols-outlined text-slate-300 group-hover:text-slate-400 transition-colors" style={{ fontSize: 18 }}>
+          <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 group-hover:translate-x-1 transition-all duration-300" style={{ fontSize: 18 }}>
             arrow_forward
           </span>
         </div>

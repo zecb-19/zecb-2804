@@ -25,6 +25,8 @@ const SOURCE_TYPES = [
   { value: "rss", label: "RSS Feed", needsUrl: true, placeholder: "https://example.com/feed.xml", icon: "rss_feed", color: "from-orange-500 to-amber-600" },
   { value: "pdf_watch", label: "PDF Watch", needsUrl: true, placeholder: "https://example.com/report.pdf", icon: "picture_as_pdf", color: "from-red-500 to-rose-600" },
   { value: "csv_upload", label: "CSV Upload", needsUrl: false, placeholder: "", icon: "upload_file", color: "from-emerald-500 to-teal-600" },
+  { value: "email_inbound", label: "Email", needsUrl: false, placeholder: "", icon: "mail", color: "from-pink-500 to-rose-600" },
+  { value: "google_sheets", label: "Sheets", needsUrl: true, placeholder: "https://docs.google.com/spreadsheets/d/...", icon: "table_chart", color: "from-green-500 to-emerald-600" },
 ] as const;
 
 const initialState: DataSourceState = undefined;
@@ -272,7 +274,7 @@ export function SourcesView({ slug, sources }: { slug: string; sources: DataSour
               key={source.id}
               variants={scaleIn}
               whileHover={{ y: -2, transition: { duration: 0.2 } }}
-              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-shadow"
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 card-hover glow-blue"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
@@ -338,6 +340,8 @@ export function SourcesView({ slug, sources }: { slug: string; sources: DataSour
                     whileTap={{ scale: 0.95 }}
                     type="submit"
                     disabled={deletePending}
+                    aria-label={`Delete ${source.name}`}
+                    title={`Delete ${source.name}`}
                     className="p-2 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>

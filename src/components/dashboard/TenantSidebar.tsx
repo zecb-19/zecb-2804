@@ -3,7 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { tenantSignoutAction } from "@/app/actions/tenant-auth";
 
 const PILL_ID = "tenant-sidebar-pill";
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -26,6 +27,7 @@ export function TenantSidebar({ slug, session }: Props) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [signingOut, startSignout] = useTransition();
 
   const isActive = (key: string) => {
     const href = `/product/${slug}/${key}`;
@@ -50,44 +52,57 @@ export function TenantSidebar({ slug, session }: Props) {
   const sidebarContent = (
     <div className="h-full flex flex-col">
       {/* Logo + collapse toggle */}
-      <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"} p-4 flex-none`}>
-        <Link href={`/product/${slug}/dashboard`} className="flex items-center gap-2.5 min-w-0">
-          <motion.div
-            whileHover={{ scale: 1.05, rotate: -3 }}
-            transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center flex-none shadow-lg shadow-blue-600/20"
-          >
-            <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>monitoring</span>
-          </motion.div>
+      <div className="p-4 flex-none">
+        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5"}`}>
+          <Link href={`/product/${slug}/dashboard`} className="flex-none">
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: -3 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/20"
+            >
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>monitoring</span>
+            </motion.div>
+          </Link>
           <AnimatePresence>
             {!collapsed && (
-              <motion.span
+              <motion.div
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.2, ease }}
-                className="font-bold text-slate-900 text-lg tracking-tight truncate overflow-hidden"
+                className="flex items-center justify-between flex-1 min-w-0 overflow-hidden"
               >
-                {slug}
-              </motion.span>
+                <Link href={`/product/${slug}/dashboard`} className="font-bold text-slate-900 text-lg tracking-tight truncate">
+                  {slug}
+                </Link>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setCollapsed((v) => !v)}
+                  className="hidden lg:flex w-7 h-7 rounded-lg hover:bg-slate-200/60 items-center justify-center text-slate-400 hover:text-slate-600 transition-colors flex-none ml-1"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
+                </motion.button>
+              </motion.div>
             )}
           </AnimatePresence>
-        </Link>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setCollapsed((v) => !v)}
-          className={`hidden lg:flex w-7 h-7 rounded-lg hover:bg-slate-200/60 items-center justify-center text-slate-400 hover:text-slate-600 transition-colors ${collapsed ? "mx-auto mt-2" : ""}`}
-        >
-          <motion.span
-            animate={{ rotate: collapsed ? 180 : 0 }}
-            transition={{ duration: 0.3, ease }}
-            className="material-symbols-outlined"
-            style={{ fontSize: 18 }}
+        </div>
+        {collapsed && (
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setCollapsed((v) => !v)}
+            className="hidden lg:flex w-full mt-2 h-7 rounded-lg hover:bg-slate-200/60 items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
           >
-            chevron_left
-          </motion.span>
-        </motion.button>
+            <motion.span
+              animate={{ rotate: 180 }}
+              className="material-symbols-outlined"
+              style={{ fontSize: 18 }}
+            >
+              chevron_left
+            </motion.span>
+          </motion.button>
+        )}
       </div>
 
       {/* Nav items */}
@@ -161,16 +176,12 @@ export function TenantSidebar({ slug, session }: Props) {
             )}
           </AnimatePresence>
         </div>
-        <form action={async () => {
-          "use server";
-          const { deleteTenantSession } = await import("@/lib/tenant/session");
-          const { redirect: nav } = await import("next/navigation");
-          await deleteTenantSession();
-          nav(`/product/${slug}`);
-        }}>
+        <div>
           <button
-            type="submit"
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50/50 text-sm font-medium transition-colors mt-1 ${collapsed ? "justify-center" : ""}`}
+            type="button"
+            disabled={signingOut}
+            onClick={() => startSignout(() => tenantSignoutAction(slug))}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50/50 text-sm font-medium transition-colors mt-1 disabled:opacity-50 ${collapsed ? "justify-center" : ""}`}
           >
             <span className="material-symbols-outlined flex-none" style={{ fontSize: 18 }}>logout</span>
             <AnimatePresence>
@@ -182,12 +193,12 @@ export function TenantSidebar({ slug, session }: Props) {
                   transition={{ duration: 0.2, ease }}
                   className="overflow-hidden"
                 >
-                  Sign out
+                  {signingOut ? "Signing out..." : "Sign out"}
                 </motion.span>
               )}
             </AnimatePresence>
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
