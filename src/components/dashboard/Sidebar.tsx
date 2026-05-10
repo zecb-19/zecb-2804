@@ -17,14 +17,14 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Dashboard", href: "/dashboard", icon: "space_dashboard" },
       { label: "Idea Inbox", href: "/dashboard/inbox", icon: "auto_awesome" },
       { label: "BuildSpec", href: "/dashboard/buildspec", icon: "edit_note" },
-      { label: "Pipeline", href: "/dashboard/pipeline", icon: "rocket_launch" },
-      { label: "Launches", href: "/dashboard/launches", icon: "check_circle" },
+      { label: "Builds", href: "/dashboard/pipeline", icon: "rocket_launch" },
     ],
   },
   {
     title: "Operate",
     items: [
       { label: "Portfolio", href: "/dashboard/portfolio", icon: "monitoring" },
+      { label: "AI Agents", href: "/dashboard/agents", icon: "smart_toy" },
       { label: "Outreach", href: "/dashboard/outreach", icon: "campaign" },
       { label: "Audit Trail", href: "/dashboard/audit", icon: "fact_check" },
     ],
@@ -40,7 +40,6 @@ const NAV_GROUPS: NavGroup[] = [
     title: "System",
     items: [
       { label: "Compliance", href: "/dashboard/compliance", icon: "verified_user" },
-      { label: "Admin", href: "/dashboard/admin", icon: "admin_panel_settings" },
       { label: "Settings", href: "/dashboard/settings", icon: "settings" },
     ],
   },

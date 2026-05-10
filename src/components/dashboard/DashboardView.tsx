@@ -194,7 +194,7 @@ export function DashboardView({
       <motion.div variants={stagger(0.05, 0.06)} className="flex flex-wrap gap-3">
         <QuickAction href="/dashboard/inbox" icon="auto_awesome" label="Generate Ideas" />
         <QuickAction href="/dashboard/buildspec" icon="add_circle" label="New Build" />
-        <QuickAction href="/dashboard/pipeline" icon="rocket_launch" label="Pipeline" />
+        <QuickAction href="/dashboard/pipeline" icon="rocket_launch" label="Builds" />
         <QuickAction href="/dashboard/audit" icon="fact_check" label="Audit Trail" />
         <QuickAction href="/dashboard/compliance" icon="verified_user" label="Compliance" />
       </motion.div>

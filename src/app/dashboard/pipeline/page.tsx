@@ -14,9 +14,9 @@ export default async function Page() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Build Pipeline</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Builds</h1>
           <p className="text-slate-500 mt-1 max-w-3xl">
-            Track every product through the 11-step build process.
+            Track every product through the 11-step build process. Approve launches at step 11.
           </p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">

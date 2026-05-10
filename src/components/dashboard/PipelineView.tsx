@@ -44,9 +44,9 @@ export function PipelineView({ products }: { products: ProductRow[] }) {
     >
       <motion.div variants={fadeUp} className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Build Pipeline</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Builds</h1>
           <p className="text-slate-500 mt-1 max-w-3xl">
-            Track every product through the 11-step build process.
+            Track every product through the 11-step build process. Approve launches at step 11.
           </p>
         </div>
         <Link
