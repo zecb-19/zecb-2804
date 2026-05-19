@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { easeOut } from "./motion";
+import { NotificationBell } from "./NotificationBell";
 
 const TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -61,14 +62,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         >
           <span className="material-symbols-outlined" style={{ fontSize: 22 }}>search</span>
         </button>
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors hidden sm:inline-flex"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>notifications</span>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
+        <NotificationBell />
         <Link
           href="/dashboard/buildspec"
           className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-slate-800 transition-colors flex items-center gap-1.5 ml-1"

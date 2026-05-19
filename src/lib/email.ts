@@ -120,8 +120,8 @@ export async function sendBuildNotificationEmail(
     failed: `
       <h1 style="color:#1a1a2e;margin:0 0 16px">Build Issue</h1>
       <p>Hi ${esc(name)},</p>
-      <p>The build for <strong>${esc(productSlug)}</strong> encountered an issue. Check the pipeline status for details.</p>
-      ${buttonHtml(`${baseUrl()}/dashboard/pipeline`, "View Pipeline")}
+      <p>The build for <strong>${esc(productSlug)}</strong> encountered an issue. Check the build status for details.</p>
+      ${buttonHtml(`${baseUrl()}/dashboard/pipeline`, "View Builds")}
     `,
   };
 

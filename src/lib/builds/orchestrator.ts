@@ -4,6 +4,7 @@ import { pool } from "@/lib/db";
 import { log } from "@/lib/log";
 import { createDataSource } from "@/lib/monitoring/datasource";
 import { sendBuildNotificationEmail } from "@/lib/email";
+import { chatWithUsage } from "@/lib/llm/openrouter";
 
 export type StepResult = {
   step: number;
@@ -153,16 +154,35 @@ async function stepInfraProvisioning(
   productId: string,
   start: number,
 ): Promise<StepResult> {
-  // In full implementation: Pulumi/Terraform for Postgres schema, Redis, BullMQ, R2, k8s, DNS, Stripe, email domains
-  // For now: record that the step ran
+  const { rows } = await pool.query<{ slug: string }>(
+    "SELECT slug FROM products WHERE id = $1::uuid",
+    [productId],
+  );
+  const safeSlug = (rows[0]?.slug ?? "").replace(/[^a-z0-9_]/g, "");
+
+  await pool.query(`CREATE SCHEMA IF NOT EXISTS product_${safeSlug}`);
+
+  await pool.query(
+    `INSERT INTO dns_entries (product_id, subdomain, target, status)
+     VALUES ($1::uuid, $2, 'pending', 'pending')
+     ON CONFLICT DO NOTHING`,
+    [productId, `app.${safeSlug}`],
+  );
+  await pool.query(
+    `INSERT INTO dns_entries (product_id, subdomain, target, status)
+     VALUES ($1::uuid, $2, 'pending', 'pending')
+     ON CONFLICT DO NOTHING`,
+    [productId, `www.${safeSlug}`],
+  );
+
   return {
     step: 3,
     label: "Infrastructure provisioning",
     status: "ok",
     output: {
       agent: "Build Orchestrator",
-      provisioned: ["postgres_schema", "redis_namespace", "bullmq_queues", "dns_entries"],
-      _note: "Simulated — real IaC integration pending",
+      schema: `product_${safeSlug}`,
+      provisioned: ["postgres_schema", "dns_entries"],
     },
     cost_eur: 0.05,
     duration_ms: Date.now() - start,
@@ -295,17 +315,36 @@ async function stepOnboardingGeneration(
   productId: string,
   start: number,
 ): Promise<StepResult> {
+  const { rows } = await pool.query<{ slug: string; name: string }>(
+    "SELECT slug, name FROM products WHERE id = $1::uuid",
+    [productId],
+  );
+  const product = rows[0] ?? { slug: "product", name: "Product" };
+
+  const result = await chatWithUsage(
+    [
+      { role: "system", content: "You generate onboarding wizard content for SaaS products. Respond in JSON only." },
+      { role: "user", content: `Generate a 3-step onboarding wizard for "${product.name}" (slug: ${product.slug}), a monitoring SaaS product. Steps: 1) Welcome & overview, 2) Configure first data source, 3) Set up first alert rule. For each step provide: title, description (2-3 sentences), action_label (button text), help_text. Return JSON: { "steps": [...] }` },
+    ],
+    { response_format: { type: "json_object" }, max_tokens: 1000 },
+  );
+
+  let wizard = {};
+  try { wizard = JSON.parse(result.content); } catch { wizard = { raw: result.content }; }
+
+  await pool.query(
+    `INSERT INTO product_configs (product_id, config_type, config_json)
+     VALUES ($1::uuid, 'onboarding_wizard', $2::jsonb)
+     ON CONFLICT (product_id, config_type) DO UPDATE SET config_json = $2::jsonb`,
+    [productId, JSON.stringify(wizard)],
+  );
+
   return {
     step: 7,
     label: "Onboarding flow generation",
     status: "ok",
-    output: {
-      agent: "Content Agent",
-      onboarding_mode: "guided_wizard",
-      sample_source_configured: true,
-      estimated_ttv: "< 2 min",
-    },
-    cost_eur: 0.08,
+    output: { agent: "Content Agent", onboarding_mode: "guided_wizard", steps: 3, llm_model: result.usage.model },
+    cost_eur: result.usage.cost_eur,
     duration_ms: Date.now() - start,
   };
 }
@@ -315,6 +354,31 @@ async function stepMarketingSiteGeneration(
   slug: string,
   start: number,
 ): Promise<StepResult> {
+  const { rows: cmRows } = await pool.query<{ payload: string }>(
+    `SELECT payload::text AS payload FROM core_messages
+     WHERE product_id = $1::uuid ORDER BY version DESC LIMIT 1`,
+    [productId],
+  );
+  const coreMessage = cmRows[0]?.payload ? JSON.parse(cmRows[0].payload) : {};
+
+  const result = await chatWithUsage(
+    [
+      { role: "system", content: "You generate landing page content for SaaS products. Respond in JSON only." },
+      { role: "user", content: `Generate a landing page for "${slug}" based on this core message: ${JSON.stringify(coreMessage).slice(0, 2000)}. Return JSON with: { hero_headline, hero_subheadline, problem_statement, solution_description, features (array of 5 {title, description}), pricing_summary, faq (array of 5 {question, answer}) }` },
+    ],
+    { response_format: { type: "json_object" }, max_tokens: 2000 },
+  );
+
+  let landing = {};
+  try { landing = JSON.parse(result.content); } catch { landing = { raw: result.content }; }
+
+  await pool.query(
+    `INSERT INTO product_configs (product_id, config_type, config_json)
+     VALUES ($1::uuid, 'landing_page', $2::jsonb)
+     ON CONFLICT (product_id, config_type) DO UPDATE SET config_json = $2::jsonb`,
+    [productId, JSON.stringify(landing)],
+  );
+
   return {
     step: 8,
     label: "Marketing site generation",
@@ -324,8 +388,9 @@ async function stepMarketingSiteGeneration(
       marketing_url: `https://www.${slug}.zecb.io`,
       app_url: `https://app.${slug}.zecb.io`,
       sections: ["hero", "problem", "solution", "features", "pricing", "faq"],
+      llm_model: result.usage.model,
     },
-    cost_eur: 0.12,
+    cost_eur: result.usage.cost_eur,
     duration_ms: Date.now() - start,
   };
 }
@@ -334,17 +399,42 @@ async function stepKnowledgeBaseInit(
   productId: string,
   start: number,
 ): Promise<StepResult> {
+  const { rows } = await pool.query<{ name: string; slug: string }>(
+    "SELECT name, slug FROM products WHERE id = $1::uuid",
+    [productId],
+  );
+  const product = rows[0] ?? { name: "Product", slug: "product" };
+
+  const result = await chatWithUsage(
+    [
+      { role: "system", content: "You generate help center articles for SaaS products. Respond in JSON only." },
+      { role: "user", content: `Generate 10 help articles for "${product.name}" (a monitoring SaaS). Cover: getting started, adding data sources (HTTP API, web scrape, RSS), configuring alert rules, setting up notifications, billing & plans, account settings, troubleshooting common issues, data export, API usage, FAQ. Return JSON: { "articles": [{ "title": "...", "slug": "...", "content": "..." (markdown, 200-400 words each) }] }` },
+    ],
+    { response_format: { type: "json_object" }, max_tokens: 4000 },
+  );
+
+  let kb = { articles: [] };
+  try { kb = JSON.parse(result.content); } catch { kb = { articles: [] }; }
+
+  await pool.query(
+    `INSERT INTO product_configs (product_id, config_type, config_json)
+     VALUES ($1::uuid, 'knowledge_base', $2::jsonb)
+     ON CONFLICT (product_id, config_type) DO UPDATE SET config_json = $2::jsonb`,
+    [productId, JSON.stringify(kb)],
+  );
+
+  const articleCount = Array.isArray((kb as { articles?: unknown[] }).articles) ? (kb as { articles: unknown[] }).articles.length : 0;
+
   return {
     step: 9,
     label: "Knowledge base init",
     status: "ok",
     output: {
       agent: "Operations Agent",
-      standard_qa_entries: 60,
-      product_specific_entries: 12,
-      total_entries: 72,
+      articles_generated: articleCount,
+      llm_model: result.usage.model,
     },
-    cost_eur: 0.15,
+    cost_eur: result.usage.cost_eur,
     duration_ms: Date.now() - start,
   };
 }

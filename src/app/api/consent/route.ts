@@ -4,6 +4,11 @@ import crypto from "crypto";
 import { pool, ensureSchema } from "@/lib/db";
 
 export async function POST(request: Request) {
+  const ct = request.headers.get("content-type") ?? "";
+  if (!ct.includes("application/json")) {
+    return NextResponse.json({ error: "Unsupported Media Type" }, { status: 415 });
+  }
+
   try {
     const body = await request.json();
     const { necessary, analytics, marketing } = body;

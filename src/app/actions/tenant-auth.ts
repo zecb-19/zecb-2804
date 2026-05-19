@@ -8,6 +8,7 @@ import {
   createTenantSession,
   deleteTenantSession,
 } from "@/lib/tenant/session";
+import { checkAndEnrollActivation } from "@/lib/outreach/enrollment-triggers";
 
 export type TenantAuthState =
   | { ok: true }
@@ -57,6 +58,8 @@ export async function tenantSignupAction(
       email,
       name,
     });
+
+    checkAndEnrollActivation(product.id, tenantId, email).catch(() => {});
 
     return { ok: true };
   } catch (err) {

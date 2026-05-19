@@ -768,6 +768,50 @@ export function ensureSchema(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS sp_product_idx ON social_posts (product_id, status);`,
     );
 
+    // --- DSGVO audit log (Art. 17 erasure trail) ---
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS dsgvo_audit_log (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        action TEXT NOT NULL,
+        email_hash TEXT NOT NULL,
+        product_id UUID,
+        details JSONB NOT NULL DEFAULT '{}'::jsonb,
+        performed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // --- product_configs (build step outputs) ---
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS product_configs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        config_type TEXT NOT NULL,
+        config_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(product_id, config_type)
+      );
+    `);
+
+    // --- dns_entries (build step 3) ---
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS dns_entries (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        subdomain TEXT NOT NULL,
+        target TEXT NOT NULL DEFAULT 'pending',
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // --- tenant extra columns for notifications ---
+    await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS phone TEXT;`);
+    await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS telegram_chat_id TEXT;`);
+    await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS slack_webhook_url TEXT;`);
+    await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS teams_webhook_url TEXT;`);
+    await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email_preferences JSONB NOT NULL DEFAULT '{"product_updates":true,"monitoring_alerts":true,"marketing":true,"lifecycle":true}'::jsonb;`);
+    await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS funnel_stage TEXT NOT NULL DEFAULT 'unaware';`);
+
     // Seed compliance checks (idempotent).
     await pool.query(`
       INSERT INTO compliance_checks (id, category, name, description, required_for, status)

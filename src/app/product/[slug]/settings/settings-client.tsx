@@ -9,6 +9,12 @@ import {
   deleteAccountAction,
   type AccountActionState,
 } from "@/app/actions/tenant-account";
+import {
+  requestDataExportAction,
+  requestDataPortabilityAction,
+  requestDataDeletionAction,
+  type DsgvoActionState,
+} from "@/app/actions/dsgvo";
 
 type PricingTier = { name: string; price_eur_monthly: number; limits: Record<string, number> };
 
@@ -53,9 +59,24 @@ export function SettingsClient({ slug, email, name, plan, channels, createdAt, p
   const [exportState, exportAction, exportPending] = useActionState(exportAllDataAction, undefined as AccountActionState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteAccountAction, undefined as AccountActionState);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [dsgvoExportState, dsgvoExportAction, dsgvoExportPending] = useActionState(requestDataExportAction, undefined as DsgvoActionState);
+  const [dsgvoPortState, dsgvoPortAction, dsgvoPortPending] = useActionState(requestDataPortabilityAction, undefined as DsgvoActionState);
+  const [dsgvoDelState, dsgvoDelAction, dsgvoDelPending] = useActionState(requestDataDeletionAction, undefined as DsgvoActionState);
+  const [showDsgvoDelete, setShowDsgvoDelete] = useState(false);
   const currentTier = pricingTiers.find((t) => t.name.toLowerCase() === (upgradeState?.ok ? "upgraded" : plan).toLowerCase()) ?? pricingTiers.find((t) => t.name.toLowerCase() === plan.toLowerCase());
   const activePlan = upgradeState?.ok ? upgradeState.message.replace("Upgraded to ", "").replace("!", "").toLowerCase() : plan.toLowerCase();
   const initials = name.split(" ").map((n) => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+
+  function triggerJsonDownload(data: string | undefined, prefix: string) {
+    if (!data) return;
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-${prefix}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function handleExportResult() {
     if (exportState?.ok && exportState.data) {
@@ -322,6 +343,100 @@ export function SettingsClient({ slug, email, name, plan, channels, createdAt, p
                   </form>
                   {deleteState && !deleteState.ok && (
                     <p className="text-red-600 text-xs mt-2">{deleteState.message}</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+      {/* Datenschutz (DSGVO) */}
+      <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>shield</span>
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-900">Datenschutz (DSGVO)</h2>
+              <p className="text-sm text-slate-500">Ihre Rechte nach der Datenschutz-Grundverordnung</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <form action={(fd) => { dsgvoExportAction(fd); setTimeout(() => triggerJsonDownload(dsgvoExportState?.ok ? dsgvoExportState.data : undefined, "auskunft"), 600); }}>
+              <motion.button whileHover={{ y: -2 }} type="submit" disabled={dsgvoExportPending}
+                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all text-left group disabled:opacity-50">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                  <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 22 }}>visibility</span>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">{dsgvoExportPending ? "Laden..." : "Daten anfordern"}</div>
+                  <div className="text-xs text-slate-500">Art. 15 Auskunftsrecht</div>
+                </div>
+              </motion.button>
+            </form>
+
+            <form action={(fd) => { dsgvoPortAction(fd); setTimeout(() => triggerJsonDownload(dsgvoPortState?.ok ? dsgvoPortState.data : undefined, "portability"), 600); }}>
+              <motion.button whileHover={{ y: -2 }} type="submit" disabled={dsgvoPortPending}
+                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-left group disabled:opacity-50">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+                  <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>file_download</span>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">{dsgvoPortPending ? "Laden..." : "Daten exportieren"}</div>
+                  <div className="text-xs text-slate-500">Art. 20 Datenportabilität</div>
+                </div>
+              </motion.button>
+            </form>
+
+            <motion.button whileHover={{ y: -2 }} type="button" onClick={() => setShowDsgvoDelete(true)}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-100 hover:border-red-200 hover:bg-red-50/30 transition-all text-left group">
+              <div className="w-10 h-10 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined text-red-500" style={{ fontSize: 22 }}>delete_sweep</span>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-red-600">Konto löschen</div>
+                <div className="text-xs text-red-400">Art. 17 Löschungsrecht</div>
+              </div>
+            </motion.button>
+          </div>
+
+          {dsgvoExportState?.ok && (
+            <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm flex items-center gap-2">
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>{dsgvoExportState.message}
+            </div>
+          )}
+          {dsgvoPortState?.ok && (
+            <div className="px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-sm flex items-center gap-2">
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>{dsgvoPortState.message}
+            </div>
+          )}
+
+          <AnimatePresence>
+            {showDsgvoDelete && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200">
+                  <p className="text-sm text-red-700 font-medium mb-3">
+                    Dies löscht unwiderruflich alle Ihre Daten (Quellen, Beobachtungen, Regeln, Alerts) und Ihr Konto. Ein Audit-Eintrag wird gemäß DSGVO aufbewahrt.
+                  </p>
+                  <form action={dsgvoDelAction} className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs font-medium text-red-600 mb-1 block">Geben Sie LOESCHEN ein</label>
+                      <input name="confirmation" type="text" required placeholder="LOESCHEN" className="w-full px-3 py-2 rounded-lg border border-red-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white" />
+                    </div>
+                    <button type="submit" disabled={dsgvoDelPending}
+                      className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors flex-none">
+                      {dsgvoDelPending ? "Löschen..." : "Endgültig löschen"}
+                    </button>
+                    <button type="button" onClick={() => setShowDsgvoDelete(false)}
+                      className="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 text-sm font-semibold hover:bg-slate-50 transition-colors flex-none">
+                      Abbrechen
+                    </button>
+                  </form>
+                  {dsgvoDelState && !dsgvoDelState.ok && (
+                    <p className="text-red-600 text-xs mt-2">{dsgvoDelState.message}</p>
                   )}
                 </div>
               </motion.div>

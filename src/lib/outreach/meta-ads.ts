@@ -143,3 +143,78 @@ export function validateBudgetChange(
 
   return { allowed: true, reason: "Within automated adjustment range" };
 }
+
+export async function deployCampaignToMeta(
+  structure: CampaignStructure,
+): Promise<{ campaignId?: string; deployed: boolean }> {
+  const token = process.env.META_SYSTEM_USER_TOKEN;
+  const adAccountId = process.env.META_AD_ACCOUNT_ID;
+  if (!token || !adAccountId) {
+    log.info({ campaign: structure.campaign_name }, "Meta Ads deployment skipped — not configured");
+    return { deployed: false };
+  }
+
+  const apiBase = `https://graph.facebook.com/v21.0/act_${adAccountId}`;
+
+  const campaignRes = await fetch(`${apiBase}/campaigns`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      access_token: token,
+      name: structure.campaign_name,
+      objective: "OUTCOME_LEADS",
+      status: "PAUSED",
+      special_ad_categories: [],
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!campaignRes.ok) {
+    const err = await campaignRes.text();
+    log.error({ status: campaignRes.status, error: err }, "Meta campaign creation failed");
+    return { deployed: false };
+  }
+
+  const campaignData = await campaignRes.json() as { id?: string };
+  const campaignId = campaignData.id;
+
+  if (campaignId) {
+    for (const adSet of structure.ad_sets) {
+      const adSetRes = await fetch(`${apiBase}/adsets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_token: token,
+          campaign_id: campaignId,
+          name: `${structure.campaign_name}_${adSet.name}`,
+          daily_budget: Math.round(adSet.budget_daily_eur * 100),
+          billing_event: "IMPRESSIONS",
+          optimization_goal: "LEAD_GENERATION",
+          targeting: {
+            geo_locations: { countries: adSet.audience.locations },
+            age_min: adSet.audience.age_min,
+            age_max: adSet.audience.age_max,
+          },
+          status: "PAUSED",
+        }),
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (!adSetRes.ok) {
+        log.error({ adSet: adSet.name }, "Meta ad set creation failed");
+      }
+    }
+  }
+
+  await pool.query(
+    `INSERT INTO agent_runs (product_id, agent, task_name, input, output, status, cost_eur)
+     VALUES ($1::uuid, 'Meta Ads Agent', 'deploy_campaign', $2::jsonb, $3::jsonb, 'ok', 0)`,
+    [
+      structure.product_id,
+      JSON.stringify({ campaign: structure.campaign_name }),
+      JSON.stringify({ meta_campaign_id: campaignId, deployed: true }),
+    ],
+  );
+
+  return { campaignId, deployed: true };
+}

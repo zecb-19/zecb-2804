@@ -43,6 +43,33 @@ export async function scheduleMonitoringJobs(): Promise<number> {
   return scheduled;
 }
 
+export async function scheduleDigestJobs(): Promise<number> {
+  const queue = getMonitorQueue();
+  if (!queue) return 0;
+
+  const { rows } = await pool.query<{ id: string; slug: string }>(
+    "SELECT id::text AS id, slug FROM products WHERE status = 'live'",
+  );
+
+  let scheduled = 0;
+  for (const product of rows) {
+    await queue.upsertJobScheduler(
+      `daily-digest:${product.id}`,
+      { pattern: "0 8 * * *" },
+      { name: `daily-digest-${product.slug}`, data: { productId: product.id, type: "daily_digest" } },
+    );
+    await queue.upsertJobScheduler(
+      `weekly-digest:${product.id}`,
+      { pattern: "0 9 * * 1" },
+      { name: `weekly-digest-${product.slug}`, data: { productId: product.id, type: "weekly_digest" } },
+    );
+    scheduled += 2;
+  }
+
+  log.info({ scheduled }, "Digest jobs scheduled");
+  return scheduled;
+}
+
 export async function enqueueMonitorJob(productId: string): Promise<boolean> {
   const queue = getMonitorQueue();
   if (!queue) return false;

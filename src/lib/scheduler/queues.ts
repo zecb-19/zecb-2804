@@ -4,6 +4,7 @@ import { getRedisConnection } from "./connection";
 export type MonitorJobData = {
   productId: string;
   sourceId?: string;
+  type?: "daily_digest" | "weekly_digest";
 };
 
 export type BuildJobData = {

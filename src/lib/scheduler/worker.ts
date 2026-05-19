@@ -1,6 +1,7 @@
 import { Worker, type Job } from "bullmq";
 import { getRedisConnection } from "./connection";
 import { runMonitoringCycle } from "@/lib/monitoring/pipeline";
+import { generateDailyDigest, generateWeeklyDigest } from "@/lib/monitoring/reports";
 import { log } from "@/lib/log";
 import type { MonitorJobData, BuildJobData } from "./queues";
 
@@ -18,8 +19,20 @@ export function startMonitorWorker(): Worker | null {
       const { productId } = job.data;
       log.info({ productId, jobId: job.id }, "Monitor job starting");
 
-      const stats = await runMonitoringCycle(productId);
+      const jobType = (job.data as Record<string, unknown>).type as string | undefined;
 
+      if (jobType === "daily_digest") {
+        await generateDailyDigest(productId);
+        log.info({ productId, jobId: job.id }, "Daily digest complete");
+        return { type: "daily_digest" };
+      }
+      if (jobType === "weekly_digest") {
+        await generateWeeklyDigest(productId);
+        log.info({ productId, jobId: job.id }, "Weekly digest complete");
+        return { type: "weekly_digest" };
+      }
+
+      const stats = await runMonitoringCycle(productId);
       log.info({ productId, jobId: job.id, ...stats }, "Monitor job complete");
       return stats;
     },

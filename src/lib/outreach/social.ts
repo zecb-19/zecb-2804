@@ -141,3 +141,103 @@ export async function getTopPerformers(
 
   return { top_articles: articles, top_social: social };
 }
+
+export async function publishToLinkedIn(
+  postId: string,
+  productId: string,
+): Promise<boolean> {
+  const token = process.env.LINKEDIN_ACCESS_TOKEN;
+  const orgUrn = process.env.LINKEDIN_ORG_URN;
+  if (!token || !orgUrn) {
+    log.info({ postId }, "LinkedIn publishing skipped — not configured");
+    return false;
+  }
+
+  const { rows } = await pool.query<{ content: string }>(
+    "SELECT content FROM social_posts WHERE id = $1::uuid AND platform = 'linkedin'",
+    [postId],
+  );
+  if (!rows[0]) return false;
+
+  const res = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Restli-Protocol-Version": "2.0.0",
+    },
+    body: JSON.stringify({
+      author: orgUrn,
+      lifecycleState: "PUBLISHED",
+      specificContent: {
+        "com.linkedin.ugc.ShareContent": {
+          shareCommentary: { text: rows[0].content },
+          shareMediaCategory: "NONE",
+        },
+      },
+      visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!res.ok) {
+    log.error({ postId, status: res.status }, "LinkedIn publish failed");
+    return false;
+  }
+
+  await pool.query(
+    "UPDATE social_posts SET status = 'published', published_at = NOW() WHERE id = $1::uuid",
+    [postId],
+  );
+  await pool.query(
+    `INSERT INTO agent_runs (product_id, agent, task_name, input, status, cost_eur)
+     VALUES ($1::uuid, 'Social Agent', 'linkedin_publish', $2::jsonb, 'ok', 0)`,
+    [productId, JSON.stringify({ post_id: postId })],
+  );
+
+  return true;
+}
+
+export async function publishToX(
+  postId: string,
+  productId: string,
+): Promise<boolean> {
+  const token = process.env.X_BEARER_TOKEN;
+  if (!token) {
+    log.info({ postId }, "X publishing skipped — not configured");
+    return false;
+  }
+
+  const { rows } = await pool.query<{ content: string }>(
+    "SELECT content FROM social_posts WHERE id = $1::uuid AND platform = 'x'",
+    [postId],
+  );
+  if (!rows[0]) return false;
+
+  const res = await fetch("https://api.x.com/2/tweets", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text: rows[0].content }),
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!res.ok) {
+    log.error({ postId, status: res.status }, "X publish failed");
+    return false;
+  }
+
+  await pool.query(
+    "UPDATE social_posts SET status = 'published', published_at = NOW() WHERE id = $1::uuid",
+    [postId],
+  );
+  await pool.query(
+    `INSERT INTO agent_runs (product_id, agent, task_name, input, status, cost_eur)
+     VALUES ($1::uuid, 'Social Agent', 'x_publish', $2::jsonb, 'ok', 0)`,
+    [productId, JSON.stringify({ post_id: postId })],
+  );
+
+  return true;
+}

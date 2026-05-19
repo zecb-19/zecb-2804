@@ -36,11 +36,24 @@ export async function dispatchNotifications(payload: AlertPayload): Promise<void
           dispatched.push("in_app");
           break;
         case "slack":
+          await dispatchSlack(payload);
+          dispatched.push("slack");
+          break;
         case "sms":
+          await dispatchSms(payload);
+          dispatched.push("sms");
+          break;
         case "whatsapp":
+          await dispatchWhatsApp(payload);
+          dispatched.push("whatsapp");
+          break;
         case "teams":
+          await dispatchTeams(payload);
+          dispatched.push("teams");
+          break;
         case "telegram":
-          log.info({ channel, alertId: payload.alertId }, `${channel} dispatch not yet implemented`);
+          await dispatchTelegram(payload);
+          dispatched.push("telegram");
           break;
       }
     } catch (err) {
@@ -136,6 +149,159 @@ async function dispatchInApp(payload: AlertPayload): Promise<void> {
       }),
     ],
   );
+}
+
+async function dispatchSlack(payload: AlertPayload): Promise<void> {
+  const { rows } = await pool.query<{ slack_webhook_url: string | null }>(
+    `SELECT t.slack_webhook_url
+       FROM tenants t
+       JOIN products p ON p.id = t.product_id
+      WHERE p.id = $1::uuid AND t.slack_webhook_url IS NOT NULL
+      LIMIT 1`,
+    [payload.productId],
+  );
+  const webhookUrl = rows[0]?.slack_webhook_url;
+  if (!webhookUrl) {
+    log.warn({ alertId: payload.alertId }, "Slack: no webhook URL configured");
+    return;
+  }
+
+  await globalThis.fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      blocks: [
+        { type: "header", text: { type: "plain_text", text: `Alert: ${payload.ruleName}` } },
+        { type: "section", text: { type: "mrkdwn", text: payload.message } },
+        { type: "context", elements: [{ type: "mrkdwn", text: `Product: *${payload.productSlug}* | ${new Date().toISOString()}` }] },
+      ],
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
+async function dispatchSms(payload: AlertPayload): Promise<void> {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_PHONE_FROM;
+  if (!sid || !token || !from) {
+    log.warn({ alertId: payload.alertId }, "SMS: Twilio not configured");
+    return;
+  }
+
+  const { rows } = await pool.query<{ phone: string | null }>(
+    `SELECT t.phone FROM tenants t JOIN products p ON p.id = t.product_id
+     WHERE p.id = $1::uuid AND t.phone IS NOT NULL LIMIT 1`,
+    [payload.productId],
+  );
+  const phone = rows[0]?.phone;
+  if (!phone) return;
+
+  const body = new URLSearchParams({ To: phone, From: from, Body: `[${payload.productSlug}] ${payload.ruleName}: ${payload.message}`.slice(0, 1600) });
+  await globalThis.fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}` },
+    body: body.toString(),
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
+async function dispatchWhatsApp(payload: AlertPayload): Promise<void> {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
+  if (!sid || !token || !from) {
+    log.warn({ alertId: payload.alertId }, "WhatsApp: Twilio not configured");
+    return;
+  }
+
+  const { rows } = await pool.query<{ phone: string | null }>(
+    `SELECT t.phone FROM tenants t JOIN products p ON p.id = t.product_id
+     WHERE p.id = $1::uuid AND t.phone IS NOT NULL LIMIT 1`,
+    [payload.productId],
+  );
+  const phone = rows[0]?.phone;
+  if (!phone) return;
+
+  const body = new URLSearchParams({ To: `whatsapp:${phone}`, From: `whatsapp:${from}`, Body: `*${payload.ruleName}*\n${payload.message}\n\n_${payload.productSlug}_` });
+  await globalThis.fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}` },
+    body: body.toString(),
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
+async function dispatchTeams(payload: AlertPayload): Promise<void> {
+  const { rows } = await pool.query<{ teams_webhook_url: string | null }>(
+    `SELECT t.teams_webhook_url
+       FROM tenants t
+       JOIN products p ON p.id = t.product_id
+      WHERE p.id = $1::uuid AND t.teams_webhook_url IS NOT NULL
+      LIMIT 1`,
+    [payload.productId],
+  );
+  const webhookUrl = rows[0]?.teams_webhook_url;
+  if (!webhookUrl) {
+    log.warn({ alertId: payload.alertId }, "Teams: no webhook URL configured");
+    return;
+  }
+
+  await globalThis.fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: "message",
+      attachments: [{
+        contentType: "application/vnd.microsoft.card.adaptive",
+        content: {
+          $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+          type: "AdaptiveCard",
+          version: "1.4",
+          body: [
+            { type: "TextBlock", text: `Alert: ${payload.ruleName}`, weight: "Bolder", size: "Medium" },
+            { type: "TextBlock", text: payload.message, wrap: true },
+            { type: "FactSet", facts: [
+              { title: "Product", value: payload.productSlug },
+              { title: "Time", value: new Date().toISOString() },
+            ]},
+          ],
+        },
+      }],
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
+async function dispatchTelegram(payload: AlertPayload): Promise<void> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
+    log.warn({ alertId: payload.alertId }, "Telegram: bot token not configured");
+    return;
+  }
+
+  const { rows } = await pool.query<{ telegram_chat_id: string | null }>(
+    `SELECT t.telegram_chat_id
+       FROM tenants t
+       JOIN products p ON p.id = t.product_id
+      WHERE p.id = $1::uuid AND t.telegram_chat_id IS NOT NULL
+      LIMIT 1`,
+    [payload.productId],
+  );
+  const chatId = rows[0]?.telegram_chat_id;
+  if (!chatId) return;
+
+  const text = `*${escTg(payload.ruleName)}*\n${escTg(payload.message)}\n\n_${escTg(payload.productSlug)}_`;
+  await globalThis.fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "MarkdownV2" }),
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
+function escTg(s: string): string {
+  return s.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, "\\$1");
 }
 
 function escHtml(s: string): string {
