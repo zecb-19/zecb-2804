@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { OutreachQueuesView } from "@/components/dashboard/OutreachQueuesView";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { getCurrentUser, isSubscriber } from "@/lib/auth/dal";
 import { ensureSchema } from "@/lib/db";
 import { listProductsForUser } from "@/lib/builds/queries";
 import {
@@ -12,6 +12,7 @@ import {
 export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
+  if (isSubscriber(user)) redirect("/dashboard");
 
   await ensureSchema();
 

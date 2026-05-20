@@ -6,26 +6,32 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useTransition } from "react";
 import { tenantSignoutAction } from "@/app/actions/tenant-auth";
 
-const PILL_ID = "tenant-sidebar-pill";
+const PILL_ID = "tenant-nav-pill";
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: "space_dashboard" },
-  { key: "sources", label: "Sources", icon: "database" },
-  { key: "rules", label: "Rules", icon: "tune" },
-  { key: "timeline", label: "Timeline", icon: "timeline" },
-  { key: "alerts", label: "Alerts", icon: "notifications_active" },
+const NAV_MAIN = [
+  { key: "dashboard", label: "Overview", icon: "grid_view" },
+  { key: "sources", label: "Data Sources", icon: "sensors" },
+  { key: "rules", label: "Alert Rules", icon: "tune" },
+  { key: "timeline", label: "Timeline", icon: "stream" },
+  { key: "alerts", label: "Alerts", icon: "notifications" },
+  { key: "reports", label: "Reports", icon: "summarize" },
+] as const;
+
+const NAV_SYSTEM = [
+  { key: "notifications", label: "Channels", icon: "campaign" },
   { key: "settings", label: "Settings", icon: "settings" },
 ] as const;
 
 type Props = {
   slug: string;
+  productName: string;
   session: { name: string; email: string };
+  sourceHealth?: Array<{ name: string; status: string | null }>;
 };
 
-export function TenantSidebar({ slug, session }: Props) {
+export function TenantSidebar({ slug, productName, session, sourceHealth = [] }: Props) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, startSignout] = useTransition();
 
@@ -42,6 +48,9 @@ export function TenantSidebar({ slug, session }: Props) {
     .join("")
     .toUpperCase();
 
+  const healthyCount = sourceHealth.filter((s) => s.status === "ok").length;
+  const totalSources = sourceHealth.length;
+
   useEffect(() => {
     if (!mobileOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
@@ -49,179 +58,154 @@ export function TenantSidebar({ slug, session }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
-  const sidebarContent = (
-    <div className="h-full flex flex-col">
-      {/* Logo + collapse toggle */}
-      <div className="p-4 flex-none">
-        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5"}`}>
-          <Link href={`/product/${slug}/dashboard`} className="flex-none">
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: -3 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/20"
-            >
-              <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>monitoring</span>
-            </motion.div>
-          </Link>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease }}
-                className="flex items-center justify-between flex-1 min-w-0 overflow-hidden"
-              >
-                <Link href={`/product/${slug}/dashboard`} className="font-bold text-slate-900 text-lg tracking-tight truncate">
-                  {slug}
-                </Link>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setCollapsed((v) => !v)}
-                  className="hidden lg:flex w-7 h-7 rounded-lg hover:bg-slate-200/60 items-center justify-center text-slate-400 hover:text-slate-600 transition-colors flex-none ml-1"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        {collapsed && (
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setCollapsed((v) => !v)}
-            className="hidden lg:flex w-full mt-2 h-7 rounded-lg hover:bg-slate-200/60 items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <motion.span
-              animate={{ rotate: 180 }}
-              className="material-symbols-outlined"
-              style={{ fontSize: 18 }}
-            >
-              chevron_left
-            </motion.span>
-          </motion.button>
-        )}
+  const sidebar = (
+    <div className="h-full flex flex-col bg-slate-950">
+      {/* Product brand */}
+      <div className="px-5 pt-6 pb-4 flex-none">
+        <Link href={`/product/${slug}/dashboard`} className="flex items-center gap-3 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:shadow-blue-500/40 transition-shadow">
+            <span className="material-symbols-outlined text-white" style={{ fontSize: 18 }}>monitoring</span>
+          </div>
+          <div className="min-w-0">
+            <div className="text-[15px] font-bold text-white truncate leading-tight">{productName}</div>
+            <div className="text-[11px] text-slate-500 font-medium">Monitoring</div>
+          </div>
+        </Link>
       </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
-        {NAV_ITEMS.map((item) => {
-          const active = isActive(item.key);
-          return (
-            <motion.div key={item.key} whileHover={active ? {} : { x: 2 }} transition={{ duration: 0.15 }}>
+      {/* Main nav */}
+      <nav className="flex-1 px-3 overflow-y-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
+        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-600 px-3 mb-2">Monitor</div>
+        <div className="space-y-0.5">
+          {NAV_MAIN.map((item) => {
+            const active = isActive(item.key);
+            return (
               <Link
+                key={item.key}
                 href={`/product/${slug}/${item.key}`}
                 onClick={() => setMobileOpen(false)}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  active
-                    ? "text-blue-700"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-white/60"
-                } ${collapsed ? "justify-center" : ""}`}
-                title={collapsed ? item.label : undefined}
+                className={`relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                  active ? "text-white" : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
+                }`}
               >
                 {active && (
                   <motion.span
                     layoutId={PILL_ID}
-                    className="absolute inset-0 bg-blue-50/80 rounded-xl border border-blue-100/60 backdrop-blur-sm shadow-sm shadow-blue-500/5"
-                    transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                    className="absolute inset-0 bg-white/[0.08] rounded-lg"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
                 {active && (
                   <motion.span
-                    layoutId={`${PILL_ID}-indicator`}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-blue-500"
-                    transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                    layoutId={`${PILL_ID}-bar`}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full bg-blue-400"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
-                <span className={`material-symbols-outlined relative z-10 flex-none ${active ? "text-blue-600" : ""}`} style={{ fontSize: 20 }}>{item.icon}</span>
-                <AnimatePresence>
-                  {!collapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.2, ease }}
-                      className="relative z-10 truncate overflow-hidden"
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                <span className={`material-symbols-outlined relative z-10 flex-none ${active ? "text-blue-400" : ""}`} style={{ fontSize: 18 }}>{item.icon}</span>
+                <span className="relative z-10">{item.label}</span>
+                {item.key === "alerts" && (
+                  <span className="relative z-10 ml-auto w-5 h-5 rounded-full bg-white/[0.06] text-slate-500 text-[10px] font-bold flex items-center justify-center">
+                    0
+                  </span>
+                )}
               </Link>
-            </motion.div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        <div className="mt-6 mb-2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-600 px-3 mb-2">System</div>
+          <div className="space-y-0.5">
+            {NAV_SYSTEM.map((item) => {
+              const active = isActive(item.key);
+              return (
+                <Link
+                  key={item.key}
+                  href={`/product/${slug}/${item.key}`}
+                  onClick={() => setMobileOpen(false)}
+                  className={`relative flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                    active ? "text-white" : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId={PILL_ID}
+                      className="absolute inset-0 bg-white/[0.08] rounded-lg"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className={`material-symbols-outlined relative z-10 flex-none ${active ? "text-blue-400" : ""}`} style={{ fontSize: 18 }}>{item.icon}</span>
+                  <span className="relative z-10">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </nav>
 
-      {/* User section */}
-      <div className="p-3 flex-none border-t border-slate-200/60">
-        <div className={`flex items-center gap-3 px-2 py-2 ${collapsed ? "justify-center" : ""}`}>
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center text-xs font-bold flex-none shadow-sm">
+      {/* Source health mini */}
+      {totalSources > 0 && (
+        <div className="px-4 pb-2 flex-none">
+          <Link href={`/product/${slug}/sources`} className="block px-3 py-2.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-600">Health</span>
+              <span className="text-[11px] font-semibold text-slate-500">{healthyCount}/{totalSources}</span>
+            </div>
+            <div className="flex gap-1">
+              {sourceHealth.map((s, i) => (
+                <div
+                  key={i}
+                  title={s.name}
+                  className={`h-1.5 flex-1 rounded-full ${
+                    s.status === "ok" ? "bg-emerald-500" : s.status ? "bg-amber-500" : "bg-slate-700"
+                  }`}
+                />
+              ))}
+            </div>
+          </Link>
+        </div>
+      )}
+
+      {/* User */}
+      <div className="border-t border-white/[0.06] p-3 flex-none">
+        <div className="flex items-center gap-3 px-2 py-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center text-[10px] font-bold flex-none ring-2 ring-white/10">
             {initials}
           </div>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2, ease }}
-                className="flex-1 min-w-0 overflow-hidden"
-              >
-                <div className="text-sm font-medium text-slate-900 truncate">{session.name}</div>
-                <div className="text-xs text-slate-500 truncate">{session.email}</div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-medium text-slate-200 truncate">{session.name}</div>
+            <div className="text-[11px] text-slate-600 truncate">{session.email}</div>
+          </div>
         </div>
-        <div>
-          <button
-            type="button"
-            disabled={signingOut}
-            onClick={() => startSignout(() => tenantSignoutAction(slug))}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50/50 text-sm font-medium transition-colors mt-1 disabled:opacity-50 ${collapsed ? "justify-center" : ""}`}
-          >
-            <span className="material-symbols-outlined flex-none" style={{ fontSize: 18 }}>logout</span>
-            <AnimatePresence>
-              {!collapsed && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2, ease }}
-                  className="overflow-hidden"
-                >
-                  {signingOut ? "Signing out..." : "Sign out"}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={signingOut}
+          onClick={() => startSignout(() => tenantSignoutAction(slug))}
+          className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-white/[0.04] text-[13px] font-medium transition-colors mt-0.5 disabled:opacity-50"
+        >
+          <span className="material-symbols-outlined flex-none" style={{ fontSize: 16 }}>logout</span>
+          {signingOut ? "Signing out..." : "Sign out"}
+        </button>
       </div>
     </div>
   );
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <motion.aside
-        animate={{ width: collapsed ? 72 : 260 }}
-        transition={{ duration: 0.3, ease }}
-        className="hidden lg:block h-screen sticky top-0 flex-none bg-white/60 backdrop-blur-2xl border-r border-slate-200/60 z-20 overflow-hidden"
-      >
-        {sidebarContent}
-      </motion.aside>
+      {/* Desktop */}
+      <aside className="hidden lg:block w-[240px] h-screen sticky top-0 flex-none z-20 overflow-hidden">
+        {sidebar}
+      </aside>
 
-      {/* Mobile hamburger */}
+      {/* Mobile FAB */}
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed bottom-6 left-6 z-30 w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xl shadow-blue-600/30"
+        className="lg:hidden fixed bottom-6 left-6 z-30 w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-xl shadow-black/30 ring-1 ring-white/10"
         aria-label="Open menu"
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 24 }}>menu</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 22 }}>menu</span>
       </button>
 
       {/* Mobile drawer */}
@@ -233,17 +217,17 @@ export function TenantSidebar({ slug, session }: Props) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
-              initial={{ x: -280 }}
+              initial={{ x: -260 }}
               animate={{ x: 0 }}
-              exit={{ x: -280 }}
-              transition={{ duration: 0.3, ease }}
-              className="fixed inset-y-0 left-0 z-50 w-[260px] bg-white/80 backdrop-blur-2xl border-r border-slate-200/60 lg:hidden"
+              exit={{ x: -260 }}
+              transition={{ duration: 0.25, ease }}
+              className="fixed inset-y-0 left-0 z-50 w-[240px] lg:hidden"
             >
-              {sidebarContent}
+              {sidebar}
             </motion.aside>
           </>
         )}

@@ -1,4 +1,5 @@
-import { getCurrentUser } from "@/lib/auth/dal";
+import { getCurrentUser, isSubscriber } from "@/lib/auth/dal";
+import { redirect } from "next/navigation";
 import {
   listAgentRunsFiltered,
   listDistinctAgentsForUser,
@@ -24,7 +25,8 @@ export default async function Page({
   searchParams?: SearchParams;
 }) {
   const user = await getCurrentUser();
-  if (!user) return null;
+  if (!user) redirect("/auth/login");
+  if (isSubscriber(user)) redirect("/dashboard");
   const params = (await searchParams) ?? {};
 
   const since = (

@@ -811,6 +811,164 @@ export function ensureSchema(): Promise<void> {
     await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS teams_webhook_url TEXT;`);
     await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS email_preferences JSONB NOT NULL DEFAULT '{"product_updates":true,"monitoring_alerts":true,"marketing":true,"lifecycle":true}'::jsonb;`);
     await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS funnel_stage TEXT NOT NULL DEFAULT 'unaware';`);
+    await pool.query(`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ;`);
+
+    // --- Phase 1.1: P&L + Outreach performance tables -------------------------
+
+    // Per-product per-channel monthly budget tracking
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS product_budgets (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        channel TEXT NOT NULL,
+        monthly_budget_eur NUMERIC(10,2) NOT NULL DEFAULT 0,
+        spent_eur NUMERIC(10,2) NOT NULL DEFAULT 0,
+        period_start DATE NOT NULL DEFAULT date_trunc('month', NOW()),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(product_id, channel, period_start)
+      );
+    `);
+
+    // Revenue events from tenant subscriptions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS product_revenue_events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        event_type TEXT NOT NULL,
+        amount_eur NUMERIC(10,2) NOT NULL DEFAULT 0,
+        tenant_id UUID,
+        stripe_event_id TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS pre_product_idx ON product_revenue_events (product_id, created_at DESC);`,
+    );
+
+    // Daily outreach rollups from CDP
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS outreach_daily_stats (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        channel TEXT NOT NULL,
+        day DATE NOT NULL,
+        impressions INT NOT NULL DEFAULT 0,
+        clicks INT NOT NULL DEFAULT 0,
+        signups INT NOT NULL DEFAULT 0,
+        conversions INT NOT NULL DEFAULT 0,
+        spend_eur NUMERIC(10,2) NOT NULL DEFAULT 0,
+        cac_eur NUMERIC(10,2),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(product_id, channel, day)
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS ods_product_day_idx ON outreach_daily_stats (product_id, day DESC);`,
+    );
+
+    // Tenant report delivery preferences
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS report_configs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        tenant_id UUID NOT NULL,
+        report_type TEXT NOT NULL,
+        enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        delivery_time TEXT NOT NULL DEFAULT '08:00',
+        timezone TEXT NOT NULL DEFAULT 'Europe/Berlin',
+        delivery_channels JSONB NOT NULL DEFAULT '["email"]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(product_id, tenant_id, report_type)
+      );
+    `);
+
+    // API keys for programmatic access
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tenant_api_keys (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL,
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        key_hash TEXT NOT NULL,
+        key_prefix TEXT NOT NULL,
+        name TEXT NOT NULL DEFAULT 'default',
+        last_used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS tak_tenant_idx ON tenant_api_keys (tenant_id);`,
+    );
+
+    // A/B landing page variants per product
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS landing_variants (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        variant_slug TEXT NOT NULL,
+        utm_source TEXT,
+        hero_headline TEXT,
+        hero_subline TEXT,
+        cta_text TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(product_id, variant_slug)
+      );
+    `);
+
+    // Email capture with double opt-in
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS product_subscribers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        email TEXT NOT NULL,
+        name TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        verification_token TEXT,
+        verified_at TIMESTAMPTZ,
+        utm_source TEXT,
+        utm_campaign TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(product_id, email)
+      );
+    `);
+
+    // Dead letter queue for failed background jobs
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS dead_letter_jobs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        queue_name TEXT NOT NULL,
+        job_id TEXT,
+        job_data JSONB NOT NULL,
+        error_message TEXT,
+        attempts INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // --- Additional columns on existing tables --------------------------------
+
+    // Products: P&L tracking
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS monthly_revenue_eur NUMERIC(10,2) NOT NULL DEFAULT 0;`);
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS outreach_spend_eur NUMERIC(10,2) NOT NULL DEFAULT 0;`);
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS infra_cost_eur NUMERIC(10,2) NOT NULL DEFAULT 0;`);
+    await pool.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS breakeven_target_date DATE;`);
+
+    // Alerts: acknowledge/resolve workflow
+    await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ;`);
+    await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;`);
+    await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS acknowledged_by UUID;`);
+
+    // Observations: diff tracking + dedup
+    await pool.query(`ALTER TABLE observations ADD COLUMN IF NOT EXISTS diff_summary JSONB;`);
+    await pool.query(`ALTER TABLE observations ADD COLUMN IF NOT EXISTS dedup_key TEXT;`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS obs_dedup_idx ON observations (data_source_id, dedup_key) WHERE dedup_key IS NOT NULL;`);
+
+    // Data sources: conditional request caching
+    await pool.query(`ALTER TABLE data_sources ADD COLUMN IF NOT EXISTS last_etag TEXT;`);
+    await pool.query(`ALTER TABLE data_sources ADD COLUMN IF NOT EXISTS last_modified_header TEXT;`);
+
+    // Email sequences: A/B testing
+    await pool.query(`ALTER TABLE email_sequence_events ADD COLUMN IF NOT EXISTS subject_variant_index INT DEFAULT 0;`);
 
     // Seed compliance checks (idempotent).
     await pool.query(`

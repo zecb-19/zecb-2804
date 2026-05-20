@@ -2,9 +2,10 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useActionState } from "react";
 
 import type { AlertRow } from "@/lib/monitoring/queries";
+import { acknowledgeAlertAction, resolveAlertAction, type AlertActionState } from "@/app/actions/tenant-alerts";
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 const stagger = (d = 0.05, s = 0.06) => ({ hidden: {}, visible: { transition: { delayChildren: d, staggerChildren: s } } });
@@ -13,9 +14,11 @@ const STATUS_CONFIG: Record<string, { icon: string; iconColor: string; bg: strin
   sent: { icon: "warning", iconColor: "text-amber-500", bg: "bg-amber-50", label: "Triggered", badgeCls: "bg-amber-50 text-amber-700 border-amber-200" },
   pending: { icon: "schedule", iconColor: "text-slate-400", bg: "bg-slate-50", label: "Pending", badgeCls: "bg-slate-100 text-slate-500 border-slate-200" },
   delivered: { icon: "check_circle", iconColor: "text-emerald-500", bg: "bg-emerald-50", label: "Delivered", badgeCls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  acknowledged: { icon: "visibility", iconColor: "text-blue-500", bg: "bg-blue-50", label: "Acknowledged", badgeCls: "bg-blue-50 text-blue-700 border-blue-200" },
+  resolved: { icon: "check_circle", iconColor: "text-emerald-500", bg: "bg-emerald-50", label: "Resolved", badgeCls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
 };
 
-type StatusFilter = "all" | "sent" | "pending" | "delivered";
+type StatusFilter = "all" | "sent" | "pending" | "delivered" | "acknowledged" | "resolved";
 
 export function AlertsClient({ slug, alerts }: { slug: string; alerts: AlertRow[] }) {
   const [search, setSearch] = useState("");
@@ -30,11 +33,13 @@ export function AlertsClient({ slug, alerts }: { slug: string; alerts: AlertRow[
     return true;
   });
 
-  const counts = {
+  const counts: Record<StatusFilter, number> = {
     all: alerts.length,
     sent: alerts.filter((a) => a.status === "sent").length,
     pending: alerts.filter((a) => a.status === "pending").length,
     delivered: alerts.filter((a) => a.status === "delivered").length,
+    acknowledged: alerts.filter((a) => a.status === "acknowledged").length,
+    resolved: alerts.filter((a) => a.status === "resolved").length,
   };
 
   return (
@@ -60,7 +65,7 @@ export function AlertsClient({ slug, alerts }: { slug: string; alerts: AlertRow[
           />
         </div>
         <div className="flex gap-2">
-          {(["all", "sent", "pending", "delivered"] as StatusFilter[]).map((s) => (
+          {(["all", "sent", "acknowledged", "resolved", "pending", "delivered"] as StatusFilter[]).map((s) => (
             <button
               key={s}
               type="button"
@@ -123,6 +128,18 @@ export function AlertsClient({ slug, alerts }: { slug: string; alerts: AlertRow[
                         Notified at {alert.notified_at.slice(11, 16)}
                       </div>
                     )}
+                    {/* Action buttons */}
+                    {(alert.status === "sent" || alert.status === "pending" || alert.status === "delivered") && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                        <AlertActionButton alertId={alert.id} action="acknowledge" label="Acknowledge" icon="visibility" />
+                        <AlertActionButton alertId={alert.id} action="resolve" label="Resolve" icon="check_circle" />
+                      </div>
+                    )}
+                    {alert.status === "acknowledged" && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                        <AlertActionButton alertId={alert.id} action="resolve" label="Resolve" icon="check_circle" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -131,5 +148,27 @@ export function AlertsClient({ slug, alerts }: { slug: string; alerts: AlertRow[
         </motion.div>
       )}
     </motion.div>
+  );
+}
+
+function AlertActionButton({ alertId, action, label, icon }: { alertId: string; action: "acknowledge" | "resolve"; label: string; icon: string }) {
+  const serverAction = action === "acknowledge" ? acknowledgeAlertAction : resolveAlertAction;
+  const [, formAction, pending] = useActionState(serverAction, undefined as AlertActionState);
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="alert_id" value={alertId} />
+      <button
+        type="submit"
+        disabled={pending}
+        className={`px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 ${
+          action === "resolve"
+            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+        }`}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{icon}</span>
+        {pending ? "..." : label}
+      </button>
+    </form>
   );
 }

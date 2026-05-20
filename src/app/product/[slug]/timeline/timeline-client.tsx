@@ -20,9 +20,14 @@ export function TimelineClient({
 }) {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showCount, setShowCount] = useState(50);
 
   const filtered = observations.filter((obs) => {
     if (sourceFilter !== "all" && obs.data_source_name !== sourceFilter) return false;
+    if (dateFrom && obs.observed_at < dateFrom) return false;
+    if (dateTo && obs.observed_at > dateTo + "T23:59:59") return false;
     if (search) {
       const q = search.toLowerCase();
       const text = `${obs.data_source_name} ${JSON.stringify(obs.dimensions)} ${JSON.stringify(obs.measures)}`.toLowerCase();
@@ -30,6 +35,8 @@ export function TimelineClient({
     }
     return true;
   });
+  const visible = filtered.slice(0, showCount);
+  const hasMore = filtered.length > showCount;
 
   function downloadCSV() {
     if (filtered.length === 0) return;
@@ -58,6 +65,23 @@ export function TimelineClient({
     URL.revokeObjectURL(url);
   }
 
+  function downloadJSON() {
+    if (filtered.length === 0) return;
+    const data = filtered.map((obs) => ({
+      timestamp: obs.observed_at,
+      source: obs.data_source_name,
+      dimensions: obs.dimensions,
+      measures: obs.measures,
+    }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-observations-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <motion.div initial="hidden" animate="visible" variants={stagger()} className="space-y-6">
       <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -68,17 +92,16 @@ export function TimelineClient({
             {filtered.length !== observations.length && ` Showing ${filtered.length}.`}
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          type="button"
-          onClick={downloadCSV}
-          disabled={filtered.length === 0}
-          className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm hover:border-slate-300 hover:shadow-sm disabled:opacity-40 transition-all inline-flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
-          Export CSV
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="button" onClick={downloadCSV} disabled={filtered.length === 0}
+            className="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-xs hover:border-slate-300 disabled:opacity-40 transition-all inline-flex items-center gap-1.5">
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>CSV
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="button" onClick={downloadJSON} disabled={filtered.length === 0}
+            className="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-xs hover:border-slate-300 disabled:opacity-40 transition-all inline-flex items-center gap-1.5">
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>data_object</span>JSON
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Search + filter */}
@@ -111,6 +134,18 @@ export function TimelineClient({
               {s.name}
             </button>
           ))}
+          <div className="flex items-center gap-1.5 ml-auto">
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              className="px-2.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+            <span className="text-xs text-slate-400">to</span>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              className="px-2.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+            {(dateFrom || dateTo) && (
+              <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); }} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+              </button>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -133,7 +168,7 @@ export function TimelineClient({
         </motion.div>
       ) : (
         <motion.div variants={stagger(0.02, 0.04)} className="space-y-2">
-          {filtered.map((obs) => (
+          {visible.map((obs) => (
             <motion.div key={obs.id} variants={fadeUp} whileHover={{ y: -1, transition: { duration: 0.15 } }}
               className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 card-hover glow-emerald">
               <div className="flex items-start gap-4">
@@ -174,6 +209,15 @@ export function TimelineClient({
               </div>
             </motion.div>
           ))}
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setShowCount((c) => c + 50)}
+              className="w-full py-3 rounded-xl bg-white border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
+            >
+              Load more ({filtered.length - showCount} remaining)
+            </button>
+          )}
         </motion.div>
       )}
     </motion.div>

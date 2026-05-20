@@ -94,8 +94,9 @@ export async function signupAction(
     }
     // New accounts get the long session — they just opted in to marketing/terms,
     // dropping them in 24h would be hostile.
+    const role = "subscriber" as const;
     await createSession(
-      { userId: id, email, name: fullName },
+      { userId: id, email, name: fullName, role },
       { remember: true },
     );
     sendWelcomeEmail(email, firstName).catch(() => {});
@@ -134,8 +135,9 @@ export async function signinAction(
       email: string;
       name: string;
       password_hash: string;
+      role: string;
     }>(
-      "SELECT id::text AS id, email, name, password_hash FROM users WHERE email = $1 LIMIT 1",
+      "SELECT id::text AS id, email, name, password_hash, COALESCE(role, 'member') AS role FROM users WHERE email = $1 LIMIT 1",
       [email],
     );
     const row = rows[0];
@@ -146,8 +148,10 @@ export async function signinAction(
     if (!ok) {
       return fail({ message: "Invalid email or password." });
     }
+    const dbRole = row.role;
+    const role = dbRole === "admin" ? "admin" as const : dbRole === "subscriber" ? "subscriber" as const : "operator" as const;
     await createSession(
-      { userId: row.id, email: row.email, name: row.name },
+      { userId: row.id, email: row.email, name: row.name, role },
       { remember: rememberMe },
     );
     await pool.query(

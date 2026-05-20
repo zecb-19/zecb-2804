@@ -12,10 +12,13 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(s);
 }
 
+export type UserRole = "operator" | "subscriber" | "admin";
+
 export type SessionPayload = {
   userId: string;
   email: string;
   name: string;
+  role: UserRole;
 };
 
 async function encrypt(payload: SessionPayload, expiresAt: Date): Promise<string> {
@@ -33,10 +36,12 @@ async function decrypt(token: string | undefined): Promise<SessionPayload | null
     if (typeof payload.userId !== "string" || typeof payload.email !== "string") {
       return null;
     }
+    const role = typeof payload.role === "string" ? payload.role as UserRole : "operator";
     return {
       userId: payload.userId,
       email: payload.email,
       name: typeof payload.name === "string" ? payload.name : "",
+      role,
     };
   } catch {
     return null;

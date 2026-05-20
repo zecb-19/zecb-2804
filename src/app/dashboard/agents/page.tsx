@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth/dal";
+import { getCurrentUser, isSubscriber } from "@/lib/auth/dal";
 import { redirect } from "next/navigation";
 import { ensureSchema, pool } from "@/lib/db";
 
@@ -27,6 +27,7 @@ type RecentRun = {
 export default async function AgentsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
+  if (isSubscriber(user)) redirect("/dashboard");
 
   await ensureSchema();
 

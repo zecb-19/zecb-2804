@@ -10,7 +10,7 @@ import { signoutAction } from "@/app/actions/auth";
 type NavItem = { label: string; href: string; icon: string };
 type NavGroup = { title: string; items: NavItem[] };
 
-const NAV_GROUPS: NavGroup[] = [
+const OPERATOR_NAV_GROUPS: NavGroup[] = [
   {
     title: "Build",
     items: [
@@ -45,14 +45,47 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+const SUBSCRIBER_NAV_GROUPS: NavGroup[] = [
+  {
+    title: "My Products",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: "space_dashboard" },
+      { label: "My Builds", href: "/dashboard/pipeline", icon: "rocket_launch" },
+      { label: "Submit Idea", href: "/dashboard/inbox", icon: "auto_awesome" },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { label: "Billing", href: "/dashboard/settings", icon: "credit_card" },
+      { label: "Settings", href: "/dashboard/settings", icon: "settings" },
+    ],
+  },
+];
+
+function getNavGroups(role: string): NavGroup[] {
+  if (role === "subscriber") return SUBSCRIBER_NAV_GROUPS;
+  const groups = [...OPERATOR_NAV_GROUPS];
+  if (role === "admin") {
+    groups.push({
+      title: "Admin",
+      items: [
+        { label: "Admin", href: "/dashboard/admin", icon: "admin_panel_settings" },
+      ],
+    });
+  }
+  return groups;
+}
+
 const ACTIVE_PILL = "zecb-sidebar-active-pill";
 
 type Props = {
-  user: { name: string; email: string };
+  user: { name: string; email: string; role: string };
   onNavigate?: () => void;
 };
 
 export function Sidebar({ user, onNavigate }: Props) {
+  const navGroups = getNavGroups(user.role);
   const pathname = usePathname();
   const [signingOut, startSignout] = useTransition();
 
@@ -81,7 +114,7 @@ export function Sidebar({ user, onNavigate }: Props) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-3" style={{ scrollbarWidth: "none" }}>
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.title} className="mb-6 last:mb-0">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 px-3 mb-2">
               {group.title}

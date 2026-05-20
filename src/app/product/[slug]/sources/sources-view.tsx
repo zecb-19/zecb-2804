@@ -7,6 +7,9 @@ import {
   createDataSourceAction,
   deleteDataSourceAction,
   runMonitoringAction,
+  updateDataSourceAction,
+  toggleDataSourceAction,
+  testDataSourceAction,
   type DataSourceState,
 } from "@/app/actions/tenant-datasources";
 import type { DataSourceRow } from "@/lib/monitoring/queries";
@@ -17,7 +20,8 @@ const scaleIn = { hidden: { opacity: 0, scale: 0.96 }, visible: { opacity: 1, sc
 const stagger = (d = 0.05, s = 0.06) => ({ hidden: {}, visible: { transition: { delayChildren: d, staggerChildren: s } } });
 
 const inputCls =
-  "w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-slate-900 placeholder:text-slate-400 transition-colors";
+  "w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-slate-900 placeholder:text-slate-400 transition-colors";
+const labelCls = "text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 block";
 
 const SOURCE_TYPES = [
   { value: "http_api", label: "HTTP API", needsUrl: true, placeholder: "https://api.example.com/v1/data", icon: "api", color: "from-blue-500 to-indigo-600" },
@@ -29,160 +33,88 @@ const SOURCE_TYPES = [
   { value: "google_sheets", label: "Sheets", needsUrl: true, placeholder: "https://docs.google.com/spreadsheets/d/...", icon: "table_chart", color: "from-green-500 to-emerald-600" },
 ] as const;
 
-const initialState: DataSourceState = undefined;
+type SourceConfig = Record<string, unknown>;
 
 export function SourcesView({ slug, sources }: { slug: string; sources: DataSourceRow[] }) {
   const [showForm, setShowForm] = useState(false);
-  const [createState, createAction, createPending] = useActionState(createDataSourceAction, initialState);
-  const [deleteState, deleteAction, deletePending] = useActionState(deleteDataSourceAction, initialState);
-  const [monitorState, monitorAction, monitorPending] = useActionState(runMonitoringAction, initialState);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [createState, createAction, createPending] = useActionState(createDataSourceAction, undefined as DataSourceState);
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteDataSourceAction, undefined as DataSourceState);
+  const [monitorState, monitorAction, monitorPending] = useActionState(runMonitoringAction, undefined as DataSourceState);
+  const [updateState, updateAction, updatePending] = useActionState(updateDataSourceAction, undefined as DataSourceState);
+  const [toggleState, toggleAction, togglePending] = useActionState(toggleDataSourceAction, undefined as DataSourceState);
+  const [testState, testAction, testPending] = useActionState(testDataSourceAction, undefined as DataSourceState);
   const [kind, setKind] = useState("http_api");
 
   const selectedType = SOURCE_TYPES.find((t) => t.value === kind) ?? SOURCE_TYPES[0];
-  const createSuccess = createState && createState.ok;
-  const createFailure = createState && !createState.ok ? createState : null;
 
   return (
     <motion.div initial="hidden" animate="visible" variants={stagger()} className="space-y-6">
       {/* Header */}
       <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Data Sources</h1>
-          <p className="text-slate-500 mt-1">Connect the data your product monitors.</p>
+          <h1 className="text-xl font-bold text-slate-900">Data Sources</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{sources.length} source{sources.length !== 1 ? "s" : ""} configured</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <form action={monitorAction}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               type="submit"
               disabled={monitorPending || sources.length === 0}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-shadow inline-flex items-center gap-2"
+              className="px-3.5 py-2 rounded-lg bg-emerald-600 text-white font-semibold text-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
             >
-              {monitorPending ? (
-                <>
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="material-symbols-outlined inline-block"
-                    style={{ fontSize: 18 }}
-                  >
-                    autorenew
-                  </motion.span>
-                  Running...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>play_arrow</span>
-                  Run Monitoring
-                </>
-              )}
-            </motion.button>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{monitorPending ? "sync" : "play_arrow"}</span>
+              {monitorPending ? "Running..." : "Run All"}
+            </button>
           </form>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/10 transition-all inline-flex items-center gap-2"
+            onClick={() => { setShowForm((v) => !v); setEditingId(null); }}
+            className="px-3.5 py-2 rounded-lg bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800 transition-colors inline-flex items-center gap-1.5"
           >
-            <motion.span
-              animate={{ rotate: showForm ? 45 : 0 }}
-              transition={{ duration: 0.2 }}
-              className="material-symbols-outlined"
-              style={{ fontSize: 18 }}
-            >
-              add
-            </motion.span>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{showForm ? "close" : "add"}</span>
             {showForm ? "Cancel" : "Add Source"}
-          </motion.button>
+          </button>
         </div>
       </motion.div>
 
-      {/* Monitoring result */}
-      <AnimatePresence>
-        {monitorState && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
-              monitorState.ok
-                ? "bg-emerald-50 border border-emerald-100 text-emerald-700"
-                : "bg-red-50 border border-red-100 text-red-700"
-            }`}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                {monitorState.ok ? "check_circle" : "error"}
-              </span>
-              {monitorState.message}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Status messages */}
+      <StatusBanner state={monitorState} />
+      <StatusBanner state={testState} />
 
       {/* Create form */}
       <AnimatePresence>
         {showForm && (
           <motion.div
-            initial={{ opacity: 0, height: 0, scale: 0.98 }}
-            animate={{ opacity: 1, height: "auto", scale: 1 }}
-            exit={{ opacity: 0, height: 0, scale: 0.98 }}
-            transition={{ duration: 0.3, ease }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease }}
             className="overflow-hidden"
           >
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>add_circle</span>
-                </div>
-                <div>
-                  <h2 className="font-bold text-slate-900">Add Data Source</h2>
-                  <p className="text-sm text-slate-500">Connect a new data feed to monitor</p>
-                </div>
-              </div>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <h2 className="text-sm font-bold text-slate-900 mb-4">New Data Source</h2>
 
-              {createSuccess && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>
-                  {createState.message}
-                </motion.div>
-              )}
-              {createFailure && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm"
-                >
-                  {createFailure.message}
-                </motion.div>
-              )}
+              <StatusBanner state={createState} />
 
-              {/* Type selector cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+              {/* Type selector */}
+              <div className="flex flex-wrap gap-1.5 mb-5">
                 {SOURCE_TYPES.map((t) => (
-                  <motion.button
+                  <button
                     key={t.value}
                     type="button"
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.97 }}
                     onClick={() => setKind(t.value)}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       kind === t.value
-                        ? "border-blue-300 bg-blue-50 shadow-sm"
-                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                        ? "bg-slate-900 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${t.color} flex items-center justify-center`}>
-                      <span className="material-symbols-outlined text-white" style={{ fontSize: 16 }}>{t.icon}</span>
-                    </div>
-                    <span className={`text-xs font-medium ${kind === t.value ? "text-blue-700" : "text-slate-600"}`}>{t.label}</span>
-                  </motion.button>
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                      {t.icon}
+                    </span>
+                    {t.label}
+                  </button>
                 ))}
               </div>
 
@@ -190,49 +122,32 @@ export function SourcesView({ slug, sources }: { slug: string; sources: DataSour
                 <input type="hidden" name="kind" value={kind} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1.5 block">Source Name</label>
-                    <input type="text" name="name" required placeholder="e.g. Amazon Price API" className={inputCls} />
+                    <label className={labelCls}>Source Name</label>
+                    <input type="text" name="name" required placeholder="e.g. Metro Preisliste" className={inputCls} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1.5 block">Rate Limit</label>
+                    <label className={labelCls}>Rate Limit (req/hr)</label>
                     <input type="number" name="rate_limit" min={1} max={1000} defaultValue={60} className={inputCls} />
-                    <p className="text-xs text-slate-400 mt-1">Requests per hour</p>
                   </div>
                 </div>
 
-                <AnimatePresence>
-                  {selectedType.needsUrl && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <label className="text-sm font-medium text-slate-700 mb-1.5 block">URL</label>
-                      <input type="url" name="url" required placeholder={selectedType.placeholder} className={inputCls} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {selectedType.needsUrl && (
+                  <div>
+                    <label className={labelCls}>URL</label>
+                    <input type="url" name="url" required placeholder={selectedType.placeholder} className={inputCls} />
+                  </div>
+                )}
 
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
+                {/* Connector-specific config */}
+                <ConnectorConfig kind={kind} config={{}} namePrefix="" />
+
+                <button
                   type="submit"
                   disabled={createPending}
-                  className="px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 disabled:opacity-50 transition-colors inline-flex items-center gap-2"
+                  className="px-4 py-2.5 rounded-lg bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors inline-flex items-center gap-2"
                 >
-                  {createPending ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-                      Create Source
-                    </>
-                  )}
-                </motion.button>
+                  {createPending ? "Creating..." : "Create Source"}
+                </button>
               </form>
             </div>
           </motion.div>
@@ -241,130 +156,291 @@ export function SourcesView({ slug, sources }: { slug: string; sources: DataSour
 
       {/* Sources list */}
       {sources.length === 0 ? (
-        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.4, ease }}
-            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center mx-auto shadow-inner"
-          >
-            <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 32 }}>database</span>
-          </motion.div>
-          <h3 className="font-bold text-slate-900 mt-5 text-lg">No data sources yet</h3>
-          <p className="text-slate-500 mt-2 text-sm max-w-md mx-auto leading-relaxed">
-            Add your first data source to start collecting data. The monitoring engine will fetch data and evaluate your alert rules automatically.
-          </p>
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+            <span className="material-symbols-outlined text-slate-300" style={{ fontSize: 28 }}>sensors</span>
+          </div>
+          <h3 className="font-bold text-slate-900 mt-4">No data sources yet</h3>
+          <p className="text-sm text-slate-500 mt-1">Connect your first data source to start monitoring.</p>
           {!showForm && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="mt-6 px-5 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/10 transition-all inline-flex items-center gap-2"
+              className="mt-4 px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-colors inline-flex items-center gap-2"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-              Add your first source
-            </motion.button>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+              Add Source
+            </button>
           )}
         </motion.div>
       ) : (
-        <motion.div variants={stagger(0.05, 0.08)} className="space-y-3">
-          {sources.map((source, i) => (
-            <motion.div
-              key={source.id}
-              variants={scaleIn}
-              whileHover={{ y: -2, transition: { duration: 0.2 } }}
-              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 card-hover glow-blue"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <motion.div
-                    whileHover={{ rotate: 5, scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center flex-none shadow-sm ${
+        <motion.div variants={stagger(0.03, 0.06)} className="space-y-3">
+          {sources.map((source) => {
+            const typeInfo = SOURCE_TYPES.find((t) => t.value === source.kind);
+            const isEditing = editingId === source.id;
+            const cfg = (source.config ?? {}) as SourceConfig;
+
+            return (
+              <motion.div
+                key={source.id}
+                variants={scaleIn}
+                className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+              >
+                {/* Source Header */}
+                <div className="px-5 py-4 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-none shadow-sm ${
                       source.enabled
-                        ? `bg-gradient-to-br ${SOURCE_TYPES.find(t => t.value === source.kind)?.color ?? "from-blue-500 to-indigo-600"}`
+                        ? `bg-gradient-to-br ${typeInfo?.color ?? "from-blue-500 to-indigo-600"}`
                         : "bg-slate-200"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>
-                      {SOURCE_TYPES.find(t => t.value === source.kind)?.icon ?? "database"}
-                    </span>
-                  </motion.div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-slate-900">{source.name}</h3>
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
-                        {source.kind.replace("_", " ")}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1 ${
-                        source.enabled
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${source.enabled ? "bg-emerald-400" : "bg-slate-400"}`} />
-                        {source.enabled ? "Active" : "Disabled"}
+                    }`}>
+                      <span className="material-symbols-outlined text-white" style={{ fontSize: 18 }}>
+                        {typeInfo?.icon ?? "database"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 flex-wrap">
-                      <span className="inline-flex items-center gap-1">
-                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>speed</span>
-                        {source.rate_limit_per_hour} req/hr
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>visibility</span>
-                        {source.observations_count} observations
-                      </span>
-                      {source.last_fetch_at ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            source.last_fetch_status === "ok" ? "bg-emerald-400" : "bg-red-400"
-                          }`} />
-                          Last: {new Date(source.last_fetch_at).toISOString().slice(0, 16).replace("T", " ")}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-slate-900">{source.name}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
+                          {source.kind.replace("_", " ")}
                         </span>
-                      ) : (
-                        <span className="text-slate-300">Never fetched</span>
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          source.enabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${source.enabled ? "bg-emerald-500" : "bg-slate-300"}`} />
+                          {source.enabled ? "Active" : "Paused"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-400 flex-wrap">
+                        <span>{source.rate_limit_per_hour} req/hr</span>
+                        <span>{source.observations_count} observations</span>
+                        {source.last_fetch_at ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${source.last_fetch_status === "ok" ? "bg-emerald-400" : "bg-red-400"}`} />
+                            {timeAgo(source.last_fetch_at)}
+                          </span>
+                        ) : (
+                          <span>Never fetched</span>
+                        )}
+                      </div>
+                      {typeof cfg.url === "string" && cfg.url && (
+                        <div className="mt-1.5 text-[11px] text-slate-400 font-mono truncate max-w-lg">
+                          {cfg.url}
+                        </div>
                       )}
                     </div>
-                    {source.config && typeof source.config === "object" && "url" in (source.config as Record<string, unknown>) && (
-                      <div className="mt-2 text-xs text-slate-400 font-mono truncate max-w-lg bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
-                        {String((source.config as Record<string, unknown>).url)}
-                      </div>
-                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-1 flex-none">
+                    <form action={testAction}>
+                      <input type="hidden" name="source_id" value={source.id} />
+                      <button type="submit" disabled={testPending} title="Test fetch" className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50">
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>bug_report</span>
+                      </button>
+                    </form>
+                    <form action={toggleAction}>
+                      <input type="hidden" name="source_id" value={source.id} />
+                      <button type="submit" disabled={togglePending} title={source.enabled ? "Pause" : "Resume"} className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-50">
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                          {source.enabled ? "pause" : "play_arrow"}
+                        </span>
+                      </button>
+                    </form>
+                    <button type="button" onClick={() => setEditingId(isEditing ? null : source.id)} title="Edit" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                        {isEditing ? "expand_less" : "edit"}
+                      </span>
+                    </button>
+                    <form action={deleteAction}>
+                      <input type="hidden" name="source_id" value={source.id} />
+                      <button type="submit" disabled={deletePending} title="Delete" className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                      </button>
+                    </form>
                   </div>
                 </div>
-                <form action={deleteAction}>
-                  <input type="hidden" name="source_id" value={source.id} />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    type="submit"
-                    disabled={deletePending}
-                    aria-label={`Delete ${source.name}`}
-                    title={`Delete ${source.name}`}
-                    className="p-2 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>
-                  </motion.button>
-                </form>
-              </div>
-            </motion.div>
-          ))}
+
+                {/* Inline Edit Form */}
+                <AnimatePresence>
+                  {isEditing && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-5 pb-5 pt-2 border-t border-slate-100 bg-slate-50/50">
+                        <StatusBanner state={updateState} />
+                        <form action={updateAction} className="space-y-3">
+                          <input type="hidden" name="source_id" value={source.id} />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className={labelCls}>Name</label>
+                              <input type="text" name="name" required defaultValue={source.name} className={inputCls} />
+                            </div>
+                            <div>
+                              <label className={labelCls}>Rate Limit (req/hr)</label>
+                              <input type="number" name="rate_limit" min={1} max={1000} defaultValue={source.rate_limit_per_hour} className={inputCls} />
+                            </div>
+                          </div>
+                          <ConnectorConfig kind={source.kind} config={cfg} namePrefix="" isEdit />
+                          <input type="hidden" name="config_json" value={buildConfigJson(source.kind, cfg)} />
+                          <div className="flex gap-2">
+                            <button type="submit" disabled={updatePending} className="px-3.5 py-2 rounded-lg bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                              {updatePending ? "Saving..." : "Save Changes"}
+                            </button>
+                            <button type="button" onClick={() => setEditingId(null)} className="px-3.5 py-2 rounded-lg bg-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-300 transition-colors">
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </motion.div>
       )}
 
-      <AnimatePresence>
-        {deleteState && !deleteState.ok && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-700 text-sm"
-          >
-            {deleteState.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <StatusBanner state={deleteState && !deleteState.ok ? deleteState : undefined} />
+      <StatusBanner state={toggleState && !toggleState.ok ? toggleState : undefined} />
+    </motion.div>
+  );
+}
+
+/* ─── Connector-Specific Config Fields ────────────────────────────── */
+
+function ConnectorConfig({ kind, config, namePrefix, isEdit }: { kind: string; config: SourceConfig; namePrefix: string; isEdit?: boolean }) {
+  const cfg = config;
+  if (kind === "http_api") {
+    return (
+      <div className="space-y-3 pt-2 border-t border-slate-100">
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">API Configuration</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>HTTP Method</label>
+            <select name={`${namePrefix}method`} defaultValue={String(cfg.method ?? "GET")} className={inputCls}>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Auth Type</label>
+            <select name={`${namePrefix}auth_type`} defaultValue={String(cfg.auth_type ?? "none")} className={inputCls}>
+              <option value="none">None</option>
+              <option value="bearer">Bearer Token</option>
+              <option value="basic">Basic Auth</option>
+              <option value="api_key">API Key (header)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Auth Token / API Key (optional)</label>
+          <input type="password" name={`${namePrefix}auth_token`} defaultValue={String(cfg.auth_token ?? "")} placeholder="sk-..." className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>JSON Path to Extract (optional)</label>
+          <input type="text" name={`${namePrefix}json_path`} defaultValue={String(cfg.json_path ?? "")} placeholder="$.data.items[*]" className={inputCls} />
+          <p className="text-[10px] text-slate-400 mt-1">JSONPath expression to extract data from response</p>
+        </div>
+        <div>
+          <label className={labelCls}>Custom Headers (optional, one per line: Key: Value)</label>
+          <textarea name={`${namePrefix}headers_raw`} defaultValue={String(cfg.headers_raw ?? "")} rows={2} placeholder={"Accept: application/json\nX-Custom: value"} className={inputCls + " font-mono text-xs"} />
+        </div>
+      </div>
+    );
+  }
+  if (kind === "webscrape") {
+    return (
+      <div className="space-y-3 pt-2 border-t border-slate-100">
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Scrape Configuration</div>
+        <div>
+          <label className={labelCls}>CSS Selectors (one per line: label | selector)</label>
+          <textarea name={`${namePrefix}selectors_raw`} defaultValue={String(cfg.selectors_raw ?? "")} rows={3} placeholder={"price | .product-price span\ntitle | h1.product-name\nstock | .availability-status"} className={inputCls + " font-mono text-xs"} />
+          <p className="text-[10px] text-slate-400 mt-1">Each line: field name | CSS selector</p>
+        </div>
+        <div>
+          <label className={labelCls}>Wait for Selector (optional)</label>
+          <input type="text" name={`${namePrefix}wait_selector`} defaultValue={String(cfg.wait_selector ?? "")} placeholder=".main-content" className={inputCls} />
+        </div>
+      </div>
+    );
+  }
+  if (kind === "google_sheets") {
+    return (
+      <div className="space-y-3 pt-2 border-t border-slate-100">
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sheets Configuration</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Sheet Name</label>
+            <input type="text" name={`${namePrefix}sheet_name`} defaultValue={String(cfg.sheet_name ?? "")} placeholder="Sheet1" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Cell Range</label>
+            <input type="text" name={`${namePrefix}range`} defaultValue={String(cfg.range ?? "")} placeholder="A1:D100" className={inputCls} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (kind === "csv_upload") {
+    return (
+      <div className="space-y-3 pt-2 border-t border-slate-100">
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">CSV Configuration</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Delimiter</label>
+            <select name={`${namePrefix}delimiter`} defaultValue={String(cfg.delimiter ?? ",")} className={inputCls}>
+              <option value=",">Comma (,)</option>
+              <option value=";">Semicolon (;)</option>
+              <option value="\t">Tab</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Column Mapping (optional)</label>
+            <input type="text" name={`${namePrefix}columns`} defaultValue={String(cfg.columns ?? "")} placeholder="price,name,sku" className={inputCls} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+/* ─── Helpers ─────────────────────────────────────────────────────── */
+
+function buildConfigJson(kind: string, cfg: SourceConfig): string {
+  return JSON.stringify(cfg);
+}
+
+function timeAgo(isoStr: string): string {
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function StatusBanner({ state }: { state: DataSourceState }) {
+  if (!state) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 ${
+        state.ok ? "bg-emerald-50 border border-emerald-100 text-emerald-700" : "bg-red-50 border border-red-100 text-red-700"
+      }`}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+        {state.ok ? "check_circle" : "error"}
+      </span>
+      {state.message}
     </motion.div>
   );
 }

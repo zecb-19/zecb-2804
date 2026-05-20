@@ -24,7 +24,8 @@ const TITLES: Record<string, string> = {
   "/dashboard/settings": "Settings",
 };
 
-export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+export function Topbar({ onMenuClick, role = "operator" }: { onMenuClick: () => void; role?: string }) {
+  const isSubscriberRole = role === "subscriber";
   const pathname = usePathname();
   const title = TITLES[pathname] ?? "Dashboard";
 
@@ -64,11 +65,13 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         </button>
         <NotificationBell />
         <Link
-          href="/dashboard/buildspec"
+          href={isSubscriberRole ? "/dashboard/inbox" : "/dashboard/buildspec"}
           className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-slate-800 transition-colors flex items-center gap-1.5 ml-1"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-          <span className="hidden sm:inline">New Build</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            {isSubscriberRole ? "auto_awesome" : "add"}
+          </span>
+          <span className="hidden sm:inline">{isSubscriberRole ? "Submit Idea" : "New Build"}</span>
         </Link>
       </div>
     </motion.header>

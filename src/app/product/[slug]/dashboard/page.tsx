@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { readTenantSession } from "@/lib/tenant/session";
 import { ensureSchema } from "@/lib/db";
-import { getTenantDashboard } from "@/lib/tenant/queries";
+import { getTenantDashboard, type DayCount, type SourceHealth } from "@/lib/tenant/queries";
 
 export default async function TenantDashboard({
   params,
@@ -15,222 +15,276 @@ export default async function TenantDashboard({
   if (!session || session.productSlug !== slug) redirect(`/product/${slug}`);
 
   await ensureSchema();
-  const data = await getTenantDashboard(session.productId);
+  const d = await getTenantDashboard(session.productId);
   const firstName = session.name.split(" ")[0];
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  const healthySources = d.source_health.filter((s) => s.last_fetch_status === "ok").length;
+  const totalSources = d.source_health.length;
+  const allHealthy = totalSources > 0 && healthySources === totalSources;
+  const someDown = totalSources > 0 && healthySources < totalSources;
 
   return (
-    <div className="space-y-8">
-      {/* Hero greeting */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJIMjR2LTJoMTJ6bTAtNHYySDI0di0yaDEyem0wLTR2MkgyNHYtMmgxMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
-        <div className="relative">
-          <p className="text-blue-200 text-sm font-medium">{greeting}</p>
-          <h1 className="text-3xl font-bold mt-1">Welcome back, {firstName}</h1>
-          <p className="text-blue-100 mt-2 max-w-xl">
-            Your monitoring overview for <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-semibold">{slug}</span>
-          </p>
+    <div className="space-y-6">
+      {/* System Status Bar */}
+      <div className={`flex items-center justify-between px-5 py-3 rounded-2xl border ${
+        allHealthy ? "bg-emerald-50/60 border-emerald-200" : someDown ? "bg-amber-50/60 border-amber-200" : "bg-slate-50 border-slate-200"
+      }`}>
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-3 w-3">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+              allHealthy ? "bg-emerald-400" : someDown ? "bg-amber-400" : "bg-slate-400"
+            }`} />
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${
+              allHealthy ? "bg-emerald-500" : someDown ? "bg-amber-500" : "bg-slate-400"
+            }`} />
+          </span>
+          <span className={`text-sm font-semibold ${
+            allHealthy ? "text-emerald-800" : someDown ? "text-amber-800" : "text-slate-600"
+          }`}>
+            {allHealthy ? "All systems operational" : someDown ? `${totalSources - healthySources} source${totalSources - healthySources > 1 ? "s" : ""} need attention` : "No sources configured"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>schedule</span>
+          {d.source_health.length > 0 && d.source_health[0].last_fetch_at
+            ? `Last check ${timeAgo(d.source_health[0].last_fetch_at)}`
+            : "No checks yet"}
         </div>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <KpiCard
-          label="Data Sources"
-          value={data.data_sources}
-          icon="database"
-          color="blue"
-          subtitle="Connected"
-          href={`/product/${slug}/settings`}
-        />
-        <KpiCard
-          label="Observations"
-          value={data.observations_total}
-          icon="visibility"
-          color="emerald"
-          subtitle={`${data.observations_today} today`}
-          href={`/product/${slug}/timeline`}
-        />
-        <KpiCard
-          label="Alert Rules"
-          value={data.alert_rules}
-          icon="tune"
-          color="violet"
-          subtitle="Active"
-          href={`/product/${slug}/rules`}
-        />
-        <KpiCard
-          label="Total Alerts"
-          value={data.alerts_total}
-          icon="notifications_active"
-          color="amber"
-          subtitle={`${data.alerts_today} today`}
-          href={`/product/${slug}/alerts`}
-        />
-        <KpiCard
-          label="Today's Data"
-          value={data.observations_today}
-          icon="today"
-          color="cyan"
-          subtitle="Observations"
-          href={`/product/${slug}/timeline`}
-        />
-        <KpiCard
-          label="Today's Alerts"
-          value={data.alerts_today}
-          icon="notification_important"
-          color="rose"
-          subtitle="Triggered"
-          href={`/product/${slug}/alerts`}
-        />
-      </div>
-
-      {/* Getting started steps */}
-      {(data.data_sources === 0 || data.alert_rules === 0) && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-              <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 22 }}>checklist</span>
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900">Get started</h3>
-              <p className="text-sm text-slate-500">Complete these steps to start monitoring</p>
+      {/* Hero Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Sources Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Sources</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>sensors</span>
             </div>
           </div>
-          <div className="space-y-1">
-            <StepItem
-              done={data.data_sources > 0}
-              label="Add a data source"
-              description="Connect an API, website, or RSS feed to monitor"
-              href={`/product/${slug}/sources`}
-              action="Add source"
-            />
-            <StepItem
-              done={data.alert_rules > 0}
-              label="Create an alert rule"
-              description="Define conditions that trigger notifications"
-              href={`/product/${slug}/rules`}
-              action="Create rule"
-            />
-            <StepItem
-              done={data.observations_total > 0}
-              label="Run your first monitoring cycle"
-              description="Fetch data from your sources and evaluate rules"
-              href={`/product/${slug}/sources`}
-              action="Run now"
-            />
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-black text-slate-900">{d.data_sources}</span>
+            <span className="text-sm text-slate-400">active</span>
+          </div>
+          <div className="flex gap-1.5 mt-4">
+            {d.source_health.map((s) => (
+              <div
+                key={s.id}
+                title={`${s.name}: ${s.last_fetch_status === "ok" ? "healthy" : s.last_fetch_status ?? "unknown"}`}
+                className={`h-2 flex-1 rounded-full ${
+                  s.last_fetch_status === "ok" ? "bg-emerald-400" : s.last_fetch_status ? "bg-amber-400" : "bg-slate-200"
+                }`}
+              />
+            ))}
+            {d.source_health.length === 0 && <div className="h-2 flex-1 rounded-full bg-slate-100" />}
+          </div>
+          <div className="text-xs text-slate-400 mt-2">
+            {healthySources}/{totalSources} healthy
+          </div>
+        </div>
+
+        {/* Observations Card with Sparkline */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Observations</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>monitoring</span>
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-black text-slate-900">{d.observations_total}</span>
+            <span className="text-sm text-slate-400">total</span>
+          </div>
+          <div className="mt-4 h-10">
+            <Sparkline data={d.obs_sparkline} color="#10b981" />
+          </div>
+          <div className="text-xs text-slate-400 mt-2">
+            {d.observations_today > 0 ? (
+              <span className="text-emerald-600 font-semibold">+{d.observations_today} today</span>
+            ) : "No data today"}
+            <span className="mx-1.5">·</span>Last 14 days
+          </div>
+        </div>
+
+        {/* Alerts Card with Sparkline */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Alerts</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${
+              d.alerts_today > 0
+                ? "bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/20"
+                : "bg-gradient-to-br from-slate-400 to-slate-500 shadow-slate-400/20"
+            }`}>
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>
+                {d.alerts_today > 0 ? "notifications_active" : "notifications_none"}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-black text-slate-900">{d.alerts_total}</span>
+            <span className="text-sm text-slate-400">triggered</span>
+          </div>
+          <div className="mt-4 h-10">
+            <Sparkline data={d.alerts_sparkline} color="#f59e0b" />
+          </div>
+          <div className="text-xs text-slate-400 mt-2">
+            {d.alerts_today > 0 ? (
+              <span className="text-amber-600 font-semibold">{d.alerts_today} today</span>
+            ) : "Quiet today"}
+            <span className="mx-1.5">·</span>{d.alert_rules} rule{d.alert_rules !== 1 ? "s" : ""} active
+          </div>
+        </div>
+      </div>
+
+      {/* Source Health Cards */}
+      {d.source_health.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Source Health</h2>
+            <Link href={`/product/${slug}/sources`} className="text-xs text-blue-600 font-semibold hover:text-blue-700">
+              Manage sources
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {d.source_health.map((source) => (
+              <SourceCard key={source.id} source={source} slug={slug} />
+            ))}
           </div>
         </div>
       )}
 
+      {/* Getting started — only show if nothing configured */}
+      {(d.data_sources === 0 || d.alert_rules === 0) && (
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="relative">
+            <h3 className="text-xl font-bold">Get monitoring in 3 steps</h3>
+            <p className="text-slate-400 mt-1 text-sm">Set up in under 2 minutes. No code required.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+              <StepCard
+                step={1}
+                done={d.data_sources > 0}
+                title="Connect a source"
+                desc="API, website, or RSS feed"
+                href={`/product/${slug}/sources`}
+                icon="link"
+              />
+              <StepCard
+                step={2}
+                done={d.alert_rules > 0}
+                title="Create an alert rule"
+                desc="Price change, new item, deadline"
+                href={`/product/${slug}/rules`}
+                icon="tune"
+              />
+              <StepCard
+                step={3}
+                done={d.observations_total > 0}
+                title="Get your first alert"
+                desc="Email, Slack, or webhook"
+                href={`/product/${slug}/sources`}
+                icon="notifications"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Two-column feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent observations */}
+        {/* Live Feed */}
         <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 18 }}>visibility</span>
-              </div>
-              <h2 className="font-bold text-slate-900">Recent Observations</h2>
+            <div className="flex items-center gap-2.5">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="font-bold text-slate-900">Live Feed</h2>
             </div>
-            <Link href={`/product/${slug}/timeline`} className="text-blue-600 text-sm font-semibold hover:text-blue-700 transition-colors">
+            <Link href={`/product/${slug}/timeline`} className="text-xs text-blue-600 font-semibold hover:text-blue-700">
               View all
             </Link>
           </div>
-          <div className="p-4">
-            {data.recent_observations.length === 0 ? (
-              <div className="text-center py-10">
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
-                  <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 28 }}>visibility_off</span>
-                </div>
-                <p className="text-slate-500 mt-3 font-medium">No observations yet</p>
-                <p className="text-slate-400 text-sm mt-1">Data will appear once monitoring runs begin</p>
-              </div>
+          <div className="divide-y divide-slate-50">
+            {d.recent_observations.length === 0 ? (
+              <EmptyState icon="stream" message="No data points yet" sub="Observations will appear once monitoring starts" />
             ) : (
-              <div className="space-y-2">
-                {data.recent_observations.map((obs) => (
-                  <div key={obs.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-blue-50/40 hover:translate-x-1 transition-all duration-200 cursor-default">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-none" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-sm text-slate-900">{obs.source_name}</span>
-                        <span className="text-xs font-mono text-slate-400">
-                          {obs.observed_at.slice(11, 16)}
+              d.recent_observations.map((obs) => (
+                <div key={obs.id} className="px-5 py-3.5 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-none ${kindBg(obs.source_kind)}`}>
+                        <span className={`material-symbols-outlined ${kindColor(obs.source_kind)}`} style={{ fontSize: 16 }}>
+                          {kindIcon(obs.source_kind)}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {Object.entries(obs.measures).slice(0, 3).map(([k, v]) => (
-                          <span key={k} className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
-                            {k}: <span className="font-mono">{String(v)}</span>
-                          </span>
-                        ))}
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900 truncate">{obs.source_name}</div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {Object.entries(obs.measures).slice(0, 3).map(([k, v]) => (
+                            <span key={k} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-medium text-slate-600">
+                              <span className="text-slate-400">{formatKey(k)}</span>
+                              <span className="font-mono font-semibold text-slate-800">{formatValue(v)}</span>
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
+                    <span className="text-[11px] text-slate-400 flex-none tabular-nums">
+                      {timeAgo(obs.observed_at)}
+                    </span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
         </section>
 
-        {/* Recent alerts */}
+        {/* Recent Alerts */}
         <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                <span className="material-symbols-outlined text-amber-600" style={{ fontSize: 18 }}>notifications_active</span>
-              </div>
-              <h2 className="font-bold text-slate-900">Recent Alerts</h2>
-            </div>
-            <Link href={`/product/${slug}/alerts`} className="text-blue-600 text-sm font-semibold hover:text-blue-700 transition-colors">
+            <h2 className="font-bold text-slate-900">Recent Alerts</h2>
+            <Link href={`/product/${slug}/alerts`} className="text-xs text-blue-600 font-semibold hover:text-blue-700">
               View all
             </Link>
           </div>
-          <div className="p-4">
-            {data.recent_alerts.length === 0 ? (
-              <div className="text-center py-10">
-                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
-                  <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 28 }}>notifications_off</span>
-                </div>
-                <p className="text-slate-500 mt-3 font-medium">No alerts triggered yet</p>
-                <p className="text-slate-400 text-sm mt-1">
-                  <Link href={`/product/${slug}/rules`} className="text-blue-600 hover:text-blue-700 font-medium">
-                    Create an alert rule
-                  </Link>{" "}
-                  to start monitoring
-                </p>
-              </div>
+          <div className="divide-y divide-slate-50">
+            {d.recent_alerts.length === 0 ? (
+              <EmptyState
+                icon="shield"
+                message="All clear"
+                sub={<>No alerts triggered yet. <Link href={`/product/${slug}/rules`} className="text-blue-600 hover:underline">Create a rule</Link> to start.</>}
+              />
             ) : (
-              <div className="space-y-2">
-                {data.recent_alerts.map((alert) => {
-                  const isSent = alert.status === "sent";
-                  return (
-                    <div key={alert.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-amber-50/40 hover:translate-x-1 transition-all duration-200 cursor-default">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-none ${isSent ? "bg-amber-50" : "bg-slate-100"}`}>
-                        <span
-                          className={`material-symbols-outlined ${isSent ? "text-amber-500" : "text-slate-400"}`}
-                          style={{ fontSize: 18 }}
-                        >
-                          {isSent ? "warning" : "schedule"}
+              d.recent_alerts.map((alert) => {
+                const isSent = alert.status === "sent" || alert.status === "pending";
+                return (
+                  <div key={alert.id} className="px-5 py-3.5 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-none mt-0.5 ${
+                        isSent ? "bg-amber-100" : "bg-emerald-100"
+                      }`}>
+                        <span className={`material-symbols-outlined ${isSent ? "text-amber-600" : "text-emerald-600"}`} style={{ fontSize: 16 }}>
+                          {isSent ? "warning" : "check_circle"}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-slate-900">{alert.rule_name}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isSent ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                          <span className="text-sm font-semibold text-slate-900 truncate">{alert.rule_name}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            isSent ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                          }`}>
                             {alert.status}
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{alert.message}</p>
                       </div>
-                      <span className="text-xs text-slate-400 flex-none whitespace-nowrap">
-                        {alert.created_at.slice(0, 16).replace("T", " ")}
+                      <span className="text-[11px] text-slate-400 flex-none tabular-nums whitespace-nowrap">
+                        {timeAgo(alert.created_at)}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>
@@ -239,65 +293,140 @@ export default async function TenantDashboard({
   );
 }
 
-function StepItem({ done, label, description, href, action }: { done: boolean; label: string; description: string; href: string; action: string }) {
+/* ─── Helper Components ──────────────────────────────────────────── */
+
+function Sparkline({ data, color }: { data: DayCount[]; color: string }) {
+  if (data.length === 0) return <div className="h-full bg-slate-50 rounded-lg" />;
+  const max = Math.max(...data.map((d) => d.count), 1);
+  const w = 200;
+  const h = 40;
+  const gap = w / (data.length - 1 || 1);
+  const points = data.map((d, i) => `${i * gap},${h - (d.count / max) * (h - 4) - 2}`);
+  const line = points.join(" ");
+  const areaPoints = `0,${h} ${line} ${(data.length - 1) * gap},${h}`;
   return (
-    <div className={`flex items-center gap-4 py-3 px-3 rounded-xl transition-all duration-200 ${done ? "bg-emerald-50/50" : "hover:bg-blue-50/30 hover:translate-x-1"}`}>
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-none ${done ? "bg-emerald-100" : "border-2 border-slate-200"}`}>
-        {done && <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 18 }}>check</span>}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className={`text-sm font-medium ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{label}</div>
-        <div className="text-xs text-slate-400 mt-0.5">{description}</div>
-      </div>
-      {!done && (
-        <Link href={href} className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors flex-none">
-          {action}
-        </Link>
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`sg-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={areaPoints} fill={`url(#sg-${color.replace("#", "")})`} />
+      <polyline points={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {data.length > 0 && (
+        <circle cx={(data.length - 1) * gap} cy={h - (data[data.length - 1].count / max) * (h - 4) - 2} r="3" fill={color} />
       )}
-    </div>
+    </svg>
   );
 }
 
-const COLOR_MAP = {
-  blue: { bg: "bg-blue-50", icon: "text-blue-600", value: "text-blue-700", ring: "ring-blue-100" },
-  emerald: { bg: "bg-emerald-50", icon: "text-emerald-600", value: "text-emerald-700", ring: "ring-emerald-100" },
-  violet: { bg: "bg-violet-50", icon: "text-violet-600", value: "text-violet-700", ring: "ring-violet-100" },
-  amber: { bg: "bg-amber-50", icon: "text-amber-600", value: "text-amber-700", ring: "ring-amber-100" },
-  cyan: { bg: "bg-cyan-50", icon: "text-cyan-600", value: "text-cyan-700", ring: "ring-cyan-100" },
-  rose: { bg: "bg-rose-50", icon: "text-rose-600", value: "text-rose-700", ring: "ring-rose-100" },
-} as const;
-
-function KpiCard({
-  label,
-  value,
-  icon,
-  color,
-  subtitle,
-  href,
-}: {
-  label: string;
-  value: number;
-  icon: string;
-  color: keyof typeof COLOR_MAP;
-  subtitle: string;
-  href: string;
-}) {
-  const c = COLOR_MAP[color];
+function SourceCard({ source, slug }: { source: SourceHealth; slug: string }) {
+  const isOk = source.last_fetch_status === "ok";
+  const isUnknown = !source.last_fetch_status;
   return (
-    <Link href={href} className="group block">
-      <div className={`bg-white rounded-2xl border border-slate-200 p-5 shadow-sm ring-1 ${c.ring} transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-1.5 hover:border-transparent hover:ring-2`}>
-        <div className="flex items-center justify-between">
-          <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6`}>
-            <span className={`material-symbols-outlined ${c.icon}`} style={{ fontSize: 22 }}>{icon}</span>
-          </div>
-          <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 group-hover:translate-x-1 transition-all duration-300" style={{ fontSize: 18 }}>
-            arrow_forward
+    <Link
+      href={`/product/${slug}/sources`}
+      className="group bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5 transition-all duration-200"
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${kindBg(source.kind)}`}>
+          <span className={`material-symbols-outlined ${kindColor(source.kind)}`} style={{ fontSize: 18 }}>
+            {kindIcon(source.kind)}
           </span>
         </div>
-        <div className={`text-3xl font-bold ${c.value} mt-3`}>{value}</div>
-        <div className="text-sm text-slate-500 mt-0.5">{label}</div>
-        <div className="text-xs text-slate-400 mt-0.5">{subtitle}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">
+            {source.name}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className={`w-1.5 h-1.5 rounded-full flex-none ${isOk ? "bg-emerald-500" : isUnknown ? "bg-slate-300" : "bg-amber-500"}`} />
+            <span className="text-[11px] text-slate-400">
+              {isOk ? "Healthy" : isUnknown ? "Pending" : "Check failed"}
+              {source.last_fetch_at ? ` · ${timeAgo(source.last_fetch_at)}` : ""}
+            </span>
+          </div>
+        </div>
+        <div className="text-right flex-none">
+          <div className="text-lg font-bold text-slate-700">{source.observations_count}</div>
+          <div className="text-[10px] text-slate-400 uppercase tracking-wider">fetches</div>
+        </div>
       </div>
     </Link>
   );
 }
+
+function StepCard({ step, done, title, desc, href, icon }: { step: number; done: boolean; title: string; desc: string; href: string; icon: string }) {
+  return (
+    <Link href={href} className={`block rounded-xl p-4 border transition-all duration-200 ${
+      done ? "bg-emerald-500/10 border-emerald-500/20" : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+    }`}>
+      <div className="flex items-center gap-2 mb-2">
+        {done ? (
+          <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+            <span className="material-symbols-outlined text-white" style={{ fontSize: 14 }}>check</span>
+          </div>
+        ) : (
+          <div className="w-6 h-6 rounded-full border-2 border-white/30 flex items-center justify-center text-xs font-bold text-white/60">
+            {step}
+          </div>
+        )}
+        <span className="material-symbols-outlined text-white/40" style={{ fontSize: 18 }}>{icon}</span>
+      </div>
+      <div className={`text-sm font-semibold ${done ? "text-emerald-300" : "text-white"}`}>{title}</div>
+      <div className="text-xs text-slate-400 mt-0.5">{desc}</div>
+    </Link>
+  );
+}
+
+function EmptyState({ icon, message, sub }: { icon: string; message: string; sub: React.ReactNode }) {
+  return (
+    <div className="text-center py-12 px-6">
+      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
+        <span className="material-symbols-outlined text-slate-300" style={{ fontSize: 32 }}>{icon}</span>
+      </div>
+      <p className="text-slate-600 mt-4 font-semibold">{message}</p>
+      <p className="text-sm text-slate-400 mt-1">{sub}</p>
+    </div>
+  );
+}
+
+/* ─── Formatters ─────────────────────────────────────────────────── */
+
+function timeAgo(isoStr: string): string {
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function formatKey(k: string): string {
+  return k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatValue(v: unknown): string {
+  if (typeof v === "number") {
+    if (v >= 1000) return v.toLocaleString("de-DE");
+    if (v % 1 !== 0) return v.toFixed(2);
+    return String(v);
+  }
+  return String(v);
+}
+
+const KIND_CONFIG: Record<string, { icon: string; bg: string; color: string }> = {
+  http_api: { icon: "api", bg: "bg-blue-100", color: "text-blue-600" },
+  webscrape: { icon: "language", bg: "bg-violet-100", color: "text-violet-600" },
+  rss: { icon: "rss_feed", bg: "bg-orange-100", color: "text-orange-600" },
+  csv_upload: { icon: "upload_file", bg: "bg-emerald-100", color: "text-emerald-600" },
+  google_sheets: { icon: "table_chart", bg: "bg-green-100", color: "text-green-600" },
+  pdf_watch: { icon: "picture_as_pdf", bg: "bg-red-100", color: "text-red-600" },
+  email_inbound: { icon: "email", bg: "bg-cyan-100", color: "text-cyan-600" },
+};
+
+function kindIcon(kind: string) { return KIND_CONFIG[kind]?.icon ?? "database"; }
+function kindBg(kind: string) { return KIND_CONFIG[kind]?.bg ?? "bg-slate-100"; }
+function kindColor(kind: string) { return KIND_CONFIG[kind]?.color ?? "text-slate-600"; }

@@ -1,7 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 
 import { PatternLibraryView } from "@/components/dashboard/PatternLibraryView";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { getCurrentUser, isSubscriber } from "@/lib/auth/dal";
 import { ensureSchema } from "@/lib/db";
 import {
   listPatterns,
@@ -13,6 +13,7 @@ import {
 export default async function Page() {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login");
+  if (isSubscriber(user)) redirect("/dashboard");
 
   await ensureSchema();
 

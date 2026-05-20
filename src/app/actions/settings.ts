@@ -86,7 +86,7 @@ export async function updateProfileAction(
     );
 
     await createSession(
-      { userId: user.id, email: user.email, name: fullName },
+      { userId: user.id, email: user.email, name: fullName, role: user.role },
       { remember: true },
     );
 
