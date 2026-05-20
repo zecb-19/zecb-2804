@@ -124,6 +124,66 @@ export type PortfolioSummary = {
   platform_opex_cap_eur: number;
 };
 
+export type ProductPnL = {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  age_days: number;
+  mrr_eur: number;
+  total_revenue_eur: number;
+  llm_cost_eur: number;
+  infra_cost_eur: number;
+  outreach_spend_eur: number;
+  total_cost_eur: number;
+  net_margin_eur: number;
+  net_margin_pct: number;
+  breakeven_achieved: boolean;
+};
+
+export async function getPortfolioPnL(userId: string): Promise<ProductPnL[]> {
+  const { rows } = await pool.query<{
+    id: string; slug: string; name: string; status: string; age_days: string;
+    mrr_eur: string; total_revenue: string; llm_cost: string;
+    infra_cost: string; outreach_spend: string;
+  }>(
+    `SELECT
+       p.id::text, p.slug, p.name, p.status,
+       EXTRACT(DAY FROM NOW() - p.created_at)::text AS age_days,
+       COALESCE(p.mrr_eur, 0)::text AS mrr_eur,
+       COALESCE(p.monthly_revenue_eur, 0)::text AS total_revenue,
+       COALESCE(ac.llm_cost, 0)::text AS llm_cost,
+       COALESCE(p.infra_cost_eur, 0)::text AS infra_cost,
+       COALESCE(p.outreach_spend_eur, 0)::text AS outreach_spend
+     FROM products p
+     LEFT JOIN LATERAL (
+       SELECT COALESCE(SUM(cost_eur), 0) AS llm_cost FROM agent_runs WHERE product_id = p.id
+     ) ac ON TRUE
+     WHERE p.owner_user_id = $1::uuid
+     ORDER BY p.status = 'live' DESC, p.created_at DESC`,
+    [userId],
+  );
+  return rows.map((r) => {
+    const revenue = Number(r.total_revenue);
+    const llm = Number(r.llm_cost);
+    const infra = Number(r.infra_cost);
+    const outreach = Number(r.outreach_spend);
+    const totalCost = llm + infra + outreach;
+    const margin = revenue - totalCost;
+    return {
+      id: r.id, slug: r.slug, name: r.name, status: r.status,
+      age_days: Number(r.age_days),
+      mrr_eur: Number(r.mrr_eur),
+      total_revenue_eur: revenue,
+      llm_cost_eur: llm, infra_cost_eur: infra, outreach_spend_eur: outreach,
+      total_cost_eur: totalCost,
+      net_margin_eur: margin,
+      net_margin_pct: revenue > 0 ? (margin / revenue) * 100 : 0,
+      breakeven_achieved: margin >= 0 && revenue > 0,
+    };
+  });
+}
+
 export function computePortfolioSummary(
   products: PortfolioProduct[],
 ): PortfolioSummary {

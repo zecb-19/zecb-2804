@@ -5,6 +5,7 @@ import { ensureSchema, pool } from "@/lib/db";
 import { TenantSidebar } from "@/components/dashboard/TenantSidebar";
 import { TenantTopbar } from "@/components/dashboard/TenantTopbar";
 import { CookieConsent } from "@/components/CookieConsent";
+import { ThemeProvider } from "@/lib/theme/ThemeContext";
 
 export default async function ProductLayout({
   children,
@@ -42,7 +43,8 @@ export default async function ProductLayout({
   const healthStatus = totalSources === 0 ? "unknown" as const : healthySources === totalSources ? "healthy" as const : "degraded" as const;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb] flex">
+    <ThemeProvider>
+    <div className="min-h-screen bg-[var(--tenant-bg,#f8f9fb)] flex">
       <TenantSidebar
         slug={slug}
         productName={productName}
@@ -59,5 +61,6 @@ export default async function ProductLayout({
       </div>
       <CookieConsent />
     </div>
+    </ThemeProvider>
   );
 }

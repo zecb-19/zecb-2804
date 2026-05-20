@@ -10,13 +10,14 @@ import {
   killProductAction,
   type ProductActionState,
 } from "@/app/actions/portfolio";
-import type { PortfolioProduct, PortfolioSummary } from "@/lib/portfolio/queries";
+import type { PortfolioProduct, PortfolioSummary, ProductPnL } from "@/lib/portfolio/queries";
 
 import { easeOut, fadeUp, fadeUpSm, scaleIn, stagger } from "./motion";
 
 type Props = {
   products: PortfolioProduct[];
   summary: PortfolioSummary;
+  pnl: ProductPnL[];
 };
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; icon: string }> = {
@@ -32,7 +33,7 @@ const PHASE_CONFIG: Record<string, { label: string; description: string }> = {
   scale: { label: "Scale", description: "Month 4+: Budget scaling on winners" },
 };
 
-export function PortfolioView({ products, summary }: Props) {
+export function PortfolioView({ products, summary, pnl }: Props) {
   const opexPct = summary.platform_opex_cap_eur > 0
     ? (summary.monthly_opex_eur / summary.platform_opex_cap_eur) * 100
     : 0;
@@ -144,6 +145,88 @@ export function PortfolioView({ products, summary }: Props) {
           </div>
         </div>
       </motion.div>
+
+      {/* ─── P&L TABLE ─────────────────────────────────────────── */}
+      {pnl.length > 0 && (
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 20 }}>analytics</span>
+              <h2 className="font-bold text-slate-900">Profit & Loss</h2>
+            </div>
+            <span className="text-xs text-slate-400">All amounts in EUR</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs text-slate-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 font-semibold">Product</th>
+                  <th className="text-right px-3 py-3 font-semibold">MRR</th>
+                  <th className="text-right px-3 py-3 font-semibold">Revenue</th>
+                  <th className="text-right px-3 py-3 font-semibold">LLM</th>
+                  <th className="text-right px-3 py-3 font-semibold">Infra</th>
+                  <th className="text-right px-3 py-3 font-semibold">Outreach</th>
+                  <th className="text-right px-3 py-3 font-semibold">Total Cost</th>
+                  <th className="text-right px-3 py-3 font-semibold">Margin</th>
+                  <th className="text-right px-3 py-3 font-semibold">%</th>
+                  <th className="text-center px-3 py-3 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {pnl.map((row) => {
+                  const marginColor = row.net_margin_eur >= 0 ? "text-emerald-600" : "text-red-600";
+                  const isOld = row.age_days > 90 && !row.breakeven_achieved;
+                  return (
+                    <tr key={row.id} className={`hover:bg-slate-50/50 ${isOld ? "bg-red-50/30" : ""}`}>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-900">{row.name}</div>
+                        <div className="text-[11px] text-slate-400">{row.slug} · {row.age_days}d</div>
+                      </td>
+                      <td className="text-right px-3 py-3 font-mono text-slate-700">{fmtEur(row.mrr_eur)}</td>
+                      <td className="text-right px-3 py-3 font-mono text-slate-700">{fmtEur(row.total_revenue_eur)}</td>
+                      <td className="text-right px-3 py-3 font-mono text-slate-500">{fmtEur(row.llm_cost_eur)}</td>
+                      <td className="text-right px-3 py-3 font-mono text-slate-500">{fmtEur(row.infra_cost_eur)}</td>
+                      <td className="text-right px-3 py-3 font-mono text-slate-500">{fmtEur(row.outreach_spend_eur)}</td>
+                      <td className="text-right px-3 py-3 font-mono font-semibold text-slate-700">{fmtEur(row.total_cost_eur)}</td>
+                      <td className={`text-right px-3 py-3 font-mono font-bold ${marginColor}`}>{fmtEur(row.net_margin_eur)}</td>
+                      <td className={`text-right px-3 py-3 font-mono text-xs ${marginColor}`}>
+                        {row.total_revenue_eur > 0 ? `${row.net_margin_pct.toFixed(0)}%` : "—"}
+                      </td>
+                      <td className="text-center px-3 py-3">
+                        {isOld ? (
+                          <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700">KILL?</span>
+                        ) : row.breakeven_achieved ? (
+                          <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">SCALE</span>
+                        ) : row.status === "live" ? (
+                          <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">GROW</span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500">{row.status}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-slate-200 bg-slate-50 font-semibold">
+                  <td className="px-4 py-3 text-slate-900">Total</td>
+                  <td className="text-right px-3 py-3 font-mono">{fmtEur(pnl.reduce((s, r) => s + r.mrr_eur, 0))}</td>
+                  <td className="text-right px-3 py-3 font-mono">{fmtEur(pnl.reduce((s, r) => s + r.total_revenue_eur, 0))}</td>
+                  <td className="text-right px-3 py-3 font-mono text-slate-500">{fmtEur(pnl.reduce((s, r) => s + r.llm_cost_eur, 0))}</td>
+                  <td className="text-right px-3 py-3 font-mono text-slate-500">{fmtEur(pnl.reduce((s, r) => s + r.infra_cost_eur, 0))}</td>
+                  <td className="text-right px-3 py-3 font-mono text-slate-500">{fmtEur(pnl.reduce((s, r) => s + r.outreach_spend_eur, 0))}</td>
+                  <td className="text-right px-3 py-3 font-mono">{fmtEur(pnl.reduce((s, r) => s + r.total_cost_eur, 0))}</td>
+                  {(() => { const totalMargin = pnl.reduce((s, r) => s + r.net_margin_eur, 0); return (
+                    <td className={`text-right px-3 py-3 font-mono font-bold ${totalMargin >= 0 ? "text-emerald-600" : "text-red-600"}`}>{fmtEur(totalMargin)}</td>
+                  ); })()}
+                  <td className="text-right px-3 py-3" />
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

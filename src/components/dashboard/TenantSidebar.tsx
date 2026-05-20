@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useTransition } from "react";
 import { tenantSignoutAction } from "@/app/actions/tenant-auth";
+import { ThemeToggle } from "@/lib/theme/ThemeContext";
 
 const PILL_ID = "tenant-nav-pill";
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -177,6 +178,7 @@ export function TenantSidebar({ slug, productName, session, sourceHealth = [] }:
             <div className="text-[13px] font-medium text-slate-200 truncate">{session.name}</div>
             <div className="text-[11px] text-slate-600 truncate">{session.email}</div>
           </div>
+          <ThemeToggle />
         </div>
         <button
           type="button"
