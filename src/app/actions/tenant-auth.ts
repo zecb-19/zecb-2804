@@ -9,6 +9,7 @@ import {
   deleteTenantSession,
 } from "@/lib/tenant/session";
 import { checkAndEnrollActivation } from "@/lib/outreach/enrollment-triggers";
+import { trackEvent } from "@/lib/outreach/cdp";
 
 export type TenantAuthState =
   | { ok: true }
@@ -60,6 +61,14 @@ export async function tenantSignupAction(
     });
 
     checkAndEnrollActivation(product.id, tenantId, email).catch(() => {});
+
+    trackEvent({
+      product_id: product.id,
+      event: "signup",
+      distinct_id: email,
+      person_id: tenantId,
+      properties: { name, plan: "free" },
+    }).catch(() => {});
 
     return { ok: true };
   } catch (err) {
@@ -118,6 +127,13 @@ export async function tenantSigninAction(
       email,
       name: tenant.name,
     });
+
+    trackEvent({
+      product_id: tenant.product_id,
+      event: "login",
+      distinct_id: email,
+      person_id: tenant.id,
+    }).catch(() => {});
 
     return { ok: true };
   } catch (err) {

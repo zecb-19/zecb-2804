@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { pool } from "@/lib/db";
 import { readTenantSession } from "@/lib/tenant/session";
+import { trackEvent } from "@/lib/outreach/cdp";
 
 export type AlertActionState =
   | { ok: true; message?: string }
@@ -23,6 +24,7 @@ export async function acknowledgeAlertAction(
       [alertId, session.productId, session.tenantId],
     );
     revalidatePath(`/product/${session.productSlug}/alerts`);
+    trackEvent({ product_id: session.productId, event: "alert_acknowledged", distinct_id: session.email, properties: { alertId } }).catch(() => {});
     return { ok: true };
   } catch (err) {
     console.error("[acknowledgeAlert] failed:", err);

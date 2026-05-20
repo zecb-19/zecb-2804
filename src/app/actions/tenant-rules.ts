@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { pool } from "@/lib/db";
 import { getCurrentTenant } from "@/lib/tenant/queries";
+import { trackEvent } from "@/lib/outreach/cdp";
 
 export type RuleActionState =
   | { ok: true; message?: string }
@@ -51,6 +52,7 @@ export async function createRuleAction(
     );
 
     revalidatePath(`/product/${tenant.productSlug}/rules`);
+    trackEvent({ product_id: tenant.productId, event: "rule_created", distinct_id: tenant.email, properties: { name, conditionType } }).catch(() => {});
     return { ok: true };
   } catch (err) {
     console.error("[createRule] failed:", err);

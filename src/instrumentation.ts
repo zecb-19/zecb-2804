@@ -9,6 +9,9 @@ export async function register() {
     const { log } = await import("@/lib/log");
     const { ensureSchema } = await import("@/lib/db");
 
+    const { initSentry } = await import("@/lib/sentry");
+    initSentry();
+
     try {
       await ensureSchema();
 

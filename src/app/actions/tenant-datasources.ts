@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { ensureSchema, pool } from "@/lib/db";
 import { readTenantSession } from "@/lib/tenant/session";
 import { runMonitoringCycle } from "@/lib/monitoring/pipeline";
+import { trackEvent } from "@/lib/outreach/cdp";
 
 export type DataSourceState =
   | { ok: true; message: string }
@@ -47,6 +48,7 @@ export async function createDataSourceAction(
     );
 
     revalidatePath(`/product/${session.productSlug}`);
+    trackEvent({ product_id: session.productId, event: "source_created", distinct_id: session.email, properties: { kind, name } }).catch(() => {});
     return { ok: true, message: "Data source created." };
   } catch (err) {
     console.error("[createDataSource] failed:", err);

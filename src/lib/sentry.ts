@@ -1,10 +1,12 @@
 import "server-only";
 
-let sentryInitialized = false;
+import * as Sentry from "@sentry/nextjs";
+
+let initialized = false;
 
 export function initSentry() {
-  if (sentryInitialized) return;
-  sentryInitialized = true;
+  if (initialized) return;
+  initialized = true;
 
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {
@@ -12,12 +14,22 @@ export function initSentry() {
     return;
   }
 
-  // Dynamic import to avoid bundling Sentry when DSN is absent.
-  // The operator adds @sentry/nextjs to dependencies and sets SENTRY_DSN
-  // to activate. Until then this is a documented no-op.
-  console.log("[sentry] DSN configured — install @sentry/nextjs to activate");
+  Sentry.init({
+    dsn,
+    release: process.env.SENTRY_RELEASE || "zecb-dev",
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+    beforeSend(event) {
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[sentry] Would send event:", event.exception?.values?.[0]?.value);
+      }
+      return event;
+    },
+  });
+
+  console.log("[sentry] Initialized — errors will be captured");
 }
 
 export function captureException(err: unknown, context?: Record<string, unknown>) {
-  console.error("[sentry-capture]", err, context);
+  Sentry.captureException(err, { extra: context });
 }

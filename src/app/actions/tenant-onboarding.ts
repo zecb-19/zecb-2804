@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ensureSchema, pool } from "@/lib/db";
 import { readTenantSession } from "@/lib/tenant/session";
 import { runMonitoringCycle } from "@/lib/monitoring/pipeline";
+import { trackEvent } from "@/lib/outreach/cdp";
 
 export type OnboardingState =
   | { ok: true; message?: string }
@@ -107,6 +108,7 @@ export async function completeOnboardingAction(
       [session.tenantId, session.productId],
     );
     revalidatePath(`/product/${session.productSlug}`);
+    trackEvent({ product_id: session.productId, event: "activation", distinct_id: session.email, person_id: session.tenantId, properties: { step: "onboarding_complete" } }).catch(() => {});
     return { ok: true, message: "Onboarding complete!" };
   } catch (err) {
     console.error("[onboarding:complete] failed:", err);
