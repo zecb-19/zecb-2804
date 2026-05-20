@@ -19,7 +19,7 @@ export function getMonitorQueue(): Queue<MonitorJobData> | null {
   if (monitorQueue) return monitorQueue;
   const conn = getRedisConnection();
   if (!conn) return null;
-  monitorQueue = new Queue<MonitorJobData>("zecb:monitor", { connection: conn });
+  monitorQueue = new Queue<MonitorJobData>("zecb-monitor", { connection: conn });
   return monitorQueue;
 }
 
@@ -27,6 +27,6 @@ export function getBuildQueue(): Queue<BuildJobData> | null {
   if (buildQueue) return buildQueue;
   const conn = getRedisConnection();
   if (!conn) return null;
-  buildQueue = new Queue<BuildJobData>("zecb:build", { connection: conn });
+  buildQueue = new Queue<BuildJobData>("zecb-build", { connection: conn });
   return buildQueue;
 }

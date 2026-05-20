@@ -14,7 +14,7 @@ export function startMonitorWorker(): Worker | null {
   if (!conn) return null;
 
   monitorWorker = new Worker<MonitorJobData>(
-    "zecb:monitor",
+    "zecb-monitor",
     async (job: Job<MonitorJobData>) => {
       const { productId } = job.data;
       log.info({ productId, jobId: job.id }, "Monitor job starting");
@@ -57,7 +57,7 @@ export function startBuildWorker(): Worker | null {
   if (!conn) return null;
 
   buildWorker = new Worker<BuildJobData>(
-    "zecb:build",
+    "zecb-build",
     async (job: Job<BuildJobData>) => {
       const { productId, step } = job.data;
       log.info({ productId, step, jobId: job.id }, "Build job starting");
