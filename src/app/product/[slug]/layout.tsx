@@ -4,6 +4,7 @@ import { readTenantSession } from "@/lib/tenant/session";
 import { ensureSchema, pool } from "@/lib/db";
 import { TenantSidebar } from "@/components/dashboard/TenantSidebar";
 import { TenantTopbar } from "@/components/dashboard/TenantTopbar";
+import { CookieConsent } from "@/components/CookieConsent";
 
 export default async function ProductLayout({
   children,
@@ -18,7 +19,7 @@ export default async function ProductLayout({
   const isAuthPage = !session || session.productSlug !== slug;
 
   if (isAuthPage) {
-    return <>{children}</>;
+    return <>{children}<CookieConsent /></>;
   }
 
   await ensureSchema();
@@ -56,6 +57,7 @@ export default async function ProductLayout({
           </div>
         </main>
       </div>
+      <CookieConsent />
     </div>
   );
 }
