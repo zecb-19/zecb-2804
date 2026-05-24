@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/dal";
 import { pool } from "@/lib/db";
 import { generateCoreMessage } from "@/lib/outreach/core-message";
 import { generateCampaignStructure } from "@/lib/outreach/meta-ads";
+import { generateGoogleAdsCampaign } from "@/lib/outreach/google-ads";
 import { createSequenceForProduct } from "@/lib/outreach/lifecycle-email";
 
 export type OutreachActionState =
@@ -134,6 +135,44 @@ export async function generateCampaignAction(
     return { ok: true, message: `Campaign "${campaign.campaign_name}" generated.` };
   } catch (err) {
     console.error("[generateCampaign] failed:", err);
+    return { ok: false, message: `Generation failed: ${(err as Error).message}` };
+  }
+}
+
+export async function generateGoogleCampaignAction(
+  _prev: GenerateState,
+  formData: FormData,
+): Promise<GenerateState> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, message: "Session expired." };
+
+  const productId = formData.get("product_id") as string;
+  if (!productId) return { ok: false, message: "Select a product." };
+
+  try {
+    const { rows } = await pool.query<{ id: string }>(
+      "SELECT id::text FROM products WHERE id = $1::uuid AND owner_user_id = $2::uuid AND status = 'live'",
+      [productId, user.id],
+    );
+    if (!rows[0]) return { ok: false, message: "Product not found or not live." };
+
+    const campaign = await generateGoogleAdsCampaign(productId);
+
+    await pool.query(
+      `INSERT INTO outreach_queue_items (product_id, item_type, title, description, channel, metadata, status)
+       VALUES ($1::uuid, 'channel', $2, $3, 'google_ads', $4::jsonb, 'pending')`,
+      [
+        productId,
+        `Google Ads — ${campaign.campaign_name}`,
+        `${campaign.ad_groups.length} ad groups, ${campaign.ad_groups.reduce((n, g) => n + g.keywords.length, 0)} keywords, €${campaign.budget_daily_eur}/day`,
+        JSON.stringify({ type: "google_campaign", campaign_name: campaign.campaign_name, campaign_type: campaign.campaign_type }),
+      ],
+    );
+
+    revalidatePath("/dashboard/outreach");
+    return { ok: true, message: `Google Ads campaign "${campaign.campaign_name}" generated.` };
+  } catch (err) {
+    console.error("[generateGoogleCampaign] failed:", err);
     return { ok: false, message: `Generation failed: ${(err as Error).message}` };
   }
 }

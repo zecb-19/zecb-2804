@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import {
   approveOutreachItemAction,
   generateCampaignAction,
+  generateGoogleCampaignAction,
   generateCoreMessageAction,
   generateEmailSequenceAction,
   rejectOutreachItemAction,
@@ -61,6 +62,7 @@ export function OutreachQueuesView({ items, stats, products }: Props) {
   const [selectedProduct, setSelectedProduct] = useState(products[0]?.id ?? "");
   const [coreState, coreAction, corePending] = useActionState(generateCoreMessageAction, undefined as GenerateState);
   const [campState, campAction, campPending] = useActionState(generateCampaignAction, undefined as GenerateState);
+  const [gadsState, gadsAction, gadsPending] = useActionState(generateGoogleCampaignAction, undefined as GenerateState);
   const [emailState, emailAction, emailPending] = useActionState(generateEmailSequenceAction, undefined as GenerateState);
 
   const filtered = activeTab === "all"
@@ -134,6 +136,16 @@ export function OutreachQueuesView({ items, stats, products }: Props) {
               pending={campPending}
               productId={selectedProduct}
               color="from-emerald-500 to-teal-600"
+            />
+            <GenerateCard
+              icon="search"
+              title="Google Ads Campaign"
+              description="Search keywords, RSAs, negative keywords, extensions"
+              action={gadsAction}
+              state={gadsState}
+              pending={gadsPending}
+              productId={selectedProduct}
+              color="from-red-500 to-rose-600"
             />
             <GenerateCard
               icon="mail"
