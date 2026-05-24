@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
 
-import { signinAction } from "@/app/actions/auth";
+import { signinAction, resendVerificationAction, type ResendVerificationState } from "@/app/actions/auth";
 import type { AuthFormState } from "@/lib/auth/definitions";
 
 import {
@@ -20,6 +20,10 @@ const initialState: AuthFormState = undefined;
 export function LoginForm() {
   const router = useRouter();
   const [state, action, pending] = useActionState(signinAction, initialState);
+  const [resendState, resendAction, resendPending] = useActionState(
+    resendVerificationAction,
+    undefined as ResendVerificationState,
+  );
 
   const success = state && state.ok ? state : null;
   const failure = state && !state.ok ? state : null;
@@ -32,6 +36,28 @@ export function LoginForm() {
     <div>
       <form action={action} className="flex flex-col gap-5">
         <FormBanner message={failure?.message} />
+
+        {failure?.needsVerification && failure.email && (
+          <div className="px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-sm">
+            <p className="text-amber-800">
+              Your email hasn&apos;t been verified yet. Check your inbox for the verification link.
+            </p>
+            <form action={resendAction} className="mt-2">
+              <input type="hidden" name="email" value={failure.email} />
+              <button
+                type="submit"
+                disabled={resendPending || resendState?.ok}
+                className="text-sm text-blue-600 font-semibold hover:text-blue-700 disabled:text-slate-400 transition-colors"
+              >
+                {resendState?.ok
+                  ? "Verification email sent!"
+                  : resendPending
+                    ? "Sending..."
+                    : "Resend verification email"}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div>
           <label htmlFor="signin-email" className={labelCls}>Email address</label>

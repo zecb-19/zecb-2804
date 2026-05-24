@@ -63,19 +63,20 @@ function buildUserPrompt(req: GenerationRequest): string {
 }
 
 function tryParse(text: string): unknown {
-  // Strip a leading ```json fence if any model wrapped the output despite
-  // response_format: json_object.
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const inner = fenced ? fenced[1] : text;
+  // Strip thinking tags from reasoning models.
+  let cleaned = text.replace(/<thinking>[\s\S]*?<\/thinking>/gi, "").trim();
+  // Strip markdown code fences.
+  const fenced = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) cleaned = fenced[1].trim();
   try {
-    return JSON.parse(inner);
+    return JSON.parse(cleaned);
   } catch {
-    // Try to extract the first top-level object.
-    const start = inner.indexOf("{");
-    const end = inner.lastIndexOf("}");
+    // Try to extract the first top-level JSON object.
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
     if (start !== -1 && end !== -1 && end > start) {
       try {
-        return JSON.parse(inner.slice(start, end + 1));
+        return JSON.parse(cleaned.slice(start, end + 1));
       } catch {
         return null;
       }
@@ -166,5 +167,6 @@ export async function generateMarketSignalReports(
     );
   }
 
+  console.error("[architect] non-JSON output (first 500 chars):", primary.content.slice(0, 500));
   throw new Error("Architect Agent returned non-JSON output");
 }

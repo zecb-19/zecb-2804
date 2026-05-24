@@ -18,13 +18,13 @@ const OPERATOR_NAV_GROUPS: NavGroup[] = [
       { label: "Idea Inbox", href: "/dashboard/inbox", icon: "auto_awesome" },
       { label: "BuildSpec", href: "/dashboard/buildspec", icon: "edit_note" },
       { label: "Builds", href: "/dashboard/pipeline", icon: "rocket_launch" },
+      { label: "Launches", href: "/dashboard/launches", icon: "flare" },
     ],
   },
   {
     title: "Operate",
     items: [
       { label: "Portfolio", href: "/dashboard/portfolio", icon: "monitoring" },
-      { label: "AI Agents", href: "/dashboard/agents", icon: "smart_toy" },
       { label: "Outreach", href: "/dashboard/outreach", icon: "campaign" },
       { label: "Audit Trail", href: "/dashboard/audit", icon: "fact_check" },
     ],

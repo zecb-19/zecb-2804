@@ -91,12 +91,15 @@ export const AUTH_FIELD_KEYS: ReadonlyArray<keyof AuthFieldErrors> = [
 export type AuthSuccess = {
   ok: true;
   user: { id: string; email: string; name: string };
+  needsVerification?: boolean;
 };
 
 export type AuthFailure = {
   ok: false;
   message?: string;
   errors?: AuthFieldErrors;
+  needsVerification?: boolean;
+  email?: string;
 };
 
 export type AuthFormState = AuthSuccess | AuthFailure | undefined;

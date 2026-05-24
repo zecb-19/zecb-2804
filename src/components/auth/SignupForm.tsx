@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
-import { signupAction } from "@/app/actions/auth";
+import { signupAction, resendVerificationAction, type ResendVerificationState } from "@/app/actions/auth";
 import { COUNTRIES, type AuthFormState } from "@/lib/auth/definitions";
 
 import {
@@ -23,13 +23,47 @@ export function SignupForm() {
   const router = useRouter();
   const [state, action, pending] = useActionState(signupAction, initialState);
   const [pw, setPw] = useState("");
+  const [resendState, resendAction, resendPending] = useActionState(
+    resendVerificationAction,
+    undefined as ResendVerificationState,
+  );
 
   const success = state && state.ok ? state : null;
   const failure = state && !state.ok ? state : null;
 
   useEffect(() => {
-    if (success) router.push("/dashboard");
+    if (success && !success.needsVerification) router.push("/dashboard");
   }, [success, router]);
+
+  if (success?.needsVerification) {
+    return (
+      <div className="text-center py-4">
+        <span className="material-symbols-outlined text-blue-500" style={{ fontSize: 48 }}>
+          mark_email_read
+        </span>
+        <h2 className="text-lg font-semibold text-slate-900 mt-4">Check your email</h2>
+        <p className="text-slate-500 mt-2 text-sm">
+          We sent a verification link to <strong>{success.user.email}</strong>.
+          Click the link to activate your account. It expires in 24 hours.
+        </p>
+        <form action={resendAction} className="mt-6">
+          <input type="hidden" name="email" value={success.user.email} />
+          <button
+            type="submit"
+            disabled={resendPending || resendState?.ok}
+            className="text-sm text-blue-600 font-semibold hover:text-blue-700 disabled:text-slate-400 transition-colors"
+          >
+            {resendState?.ok
+              ? "Verification email sent!"
+              : resendPending
+                ? "Sending..."
+                : "Didn’t receive it? Resend"}
+          </button>
+        </form>
+        <p className="mt-4 text-xs text-slate-400">Check your spam folder if you don&apos;t see it.</p>
+      </div>
+    );
+  }
 
   return (
     <div>

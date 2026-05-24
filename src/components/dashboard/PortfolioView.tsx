@@ -324,6 +324,30 @@ function ProductCard({ product: p }: { product: PortfolioProduct }) {
         </div>
       </div>
 
+      {/* Product URLs */}
+      {(p.status === "live" || p.status === "building") && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Link
+            href={`/product/${p.slug}`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+          >
+            <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 14 }}>open_in_new</span>
+            Tenant App
+            <span className="text-slate-400 font-mono">/product/{p.slug}</span>
+          </Link>
+          <Link
+            href={`/p/${p.slug}`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+          >
+            <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 14 }}>language</span>
+            Marketing Page
+            <span className="text-slate-400 font-mono">/p/{p.slug}</span>
+          </Link>
+        </div>
+      )}
+
       {/* Metrics grid */}
       <motion.div
         initial="hidden"

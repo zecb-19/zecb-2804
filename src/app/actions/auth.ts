@@ -14,7 +14,7 @@ import {
   type AuthFormState,
 } from "@/lib/auth/definitions";
 import { createSession, deleteSession } from "@/lib/auth/session";
-import { sendWelcomeEmail, sendPasswordResetEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 import type { ZodError } from "zod";
 
 const FIELD_KEY_SET: ReadonlySet<string> = new Set(AUTH_FIELD_KEYS);
@@ -92,15 +92,17 @@ export async function signupAction(
     if (!id) {
       return fail({ message: "Could not create your account. Please try again." });
     }
-    // New accounts get the long session — they just opted in to marketing/terms,
-    // dropping them in 24h would be hostile.
-    const role = "subscriber" as const;
-    await createSession(
-      { userId: id, email, name: fullName, role },
-      { remember: true },
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    await pool.query(
+      `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+       VALUES ($1::uuid, $2, NOW() + INTERVAL '24 hours')`,
+      [id, tokenHash],
     );
-    sendWelcomeEmail(email, firstName).catch(() => {});
-    return { ok: true, user: { id, email, name: fullName } };
+
+    sendVerificationEmail(email, firstName, token).catch(() => {});
+    return { ok: true, user: { id, email, name: fullName }, needsVerification: true };
   } catch (err) {
     const code = (err as { code?: string }).code;
     if (code === "23505") {
@@ -136,8 +138,9 @@ export async function signinAction(
       name: string;
       password_hash: string;
       role: string;
+      email_verified: boolean;
     }>(
-      "SELECT id::text AS id, email, name, password_hash, COALESCE(role, 'member') AS role FROM users WHERE email = $1 LIMIT 1",
+      "SELECT id::text AS id, email, name, password_hash, COALESCE(role, 'member') AS role, email_verified FROM users WHERE email = $1 LIMIT 1",
       [email],
     );
     const row = rows[0];
@@ -147,6 +150,13 @@ export async function signinAction(
     const ok = await bcrypt.compare(password, row.password_hash);
     if (!ok) {
       return fail({ message: "Invalid email or password." });
+    }
+    if (!row.email_verified) {
+      return fail({
+        message: "Please verify your email before signing in.",
+        needsVerification: true,
+        email: row.email,
+      });
     }
     const dbRole = row.role;
     const role = dbRole === "admin" ? "admin" as const : dbRole === "subscriber" ? "subscriber" as const : "operator" as const;
@@ -214,6 +224,102 @@ export async function requestPasswordResetAction(
     return { ok: true };
   } catch (err) {
     console.error("[requestPasswordResetAction] failed:", err);
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
+}
+
+// --- Email Verification ---------------------------------------------------
+
+export type VerifyEmailState =
+  | { ok: true }
+  | { ok: false; message: string }
+  | undefined;
+
+export type ResendVerificationState =
+  | { ok: true }
+  | { ok: false; message: string }
+  | undefined;
+
+export async function verifyEmailAction(
+  token: string,
+): Promise<VerifyEmailState> {
+  if (!token) return { ok: false, message: "Invalid verification link." };
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+  try {
+    await ensureSchema();
+
+    const { rows } = await pool.query<{ user_id: string; first_name: string | null; email: string }>(
+      `SELECT t.user_id::text AS user_id, u.first_name, u.email
+         FROM email_verification_tokens t
+         JOIN users u ON u.id = t.user_id
+        WHERE t.token_hash = $1
+          AND t.expires_at > NOW()
+          AND t.used_at IS NULL
+        LIMIT 1`,
+      [tokenHash],
+    );
+    const row = rows[0];
+    if (!row) {
+      return { ok: false, message: "This verification link has expired or is invalid." };
+    }
+
+    await pool.query(
+      "UPDATE users SET email_verified = TRUE WHERE id = $1::uuid",
+      [row.user_id],
+    );
+
+    await pool.query(
+      "UPDATE email_verification_tokens SET used_at = NOW() WHERE token_hash = $1",
+      [tokenHash],
+    );
+
+    sendWelcomeEmail(row.email, row.first_name || "there").catch(() => {});
+    return { ok: true };
+  } catch (err) {
+    console.error("[verifyEmailAction] failed:", err);
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
+}
+
+export async function resendVerificationAction(
+  _prev: ResendVerificationState,
+  formData: FormData,
+): Promise<ResendVerificationState> {
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  if (!email) return { ok: false, message: "Email is required." };
+
+  try {
+    await ensureSchema();
+
+    const { rows } = await pool.query<{ id: string; first_name: string | null; email_verified: boolean }>(
+      "SELECT id::text AS id, first_name, email_verified FROM users WHERE email = $1 LIMIT 1",
+      [email],
+    );
+    const user = rows[0];
+
+    if (!user) return { ok: true };
+    if (user.email_verified) return { ok: true };
+
+    await pool.query(
+      "DELETE FROM email_verification_tokens WHERE user_id = $1::uuid",
+      [user.id],
+    );
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    await pool.query(
+      `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+       VALUES ($1::uuid, $2, NOW() + INTERVAL '24 hours')`,
+      [user.id, tokenHash],
+    );
+
+    sendVerificationEmail(email, user.first_name || "there", token).catch(() => {});
+    return { ok: true };
+  } catch (err) {
+    console.error("[resendVerificationAction] failed:", err);
     return { ok: false, message: "Something went wrong. Please try again." };
   }
 }

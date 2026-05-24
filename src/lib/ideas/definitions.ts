@@ -35,7 +35,7 @@ const SuggestedDataSource = z.object({
 const SuggestedPricingTier = z.object({
   name: z.string().min(1).max(40),
   price_eur_monthly: z.number().nonnegative().max(99_999),
-  target_segment: z.string().max(160).default(""),
+  target_segment: z.string().max(400).default(""),
 });
 
 const Persona = z.object({
@@ -53,12 +53,12 @@ const UnitEconomics = z.object({
 });
 
 export const ArchitectIdeaSchema = z.object({
-  vertical: z.string().min(2).max(60),
+  vertical: z.string().min(2).max(120),
   persona: Persona,
-  opportunity: z.string().min(10).max(240),
-  pain_statement: z.string().min(10).max(280),
-  core_promise: z.string().min(10).max(280),
-  mechanism: z.string().min(10).max(400),
+  opportunity: z.string().min(10).max(400),
+  pain_statement: z.string().min(10).max(400),
+  core_promise: z.string().min(10).max(400),
+  mechanism: z.string().min(10).max(600),
   suggested_slug: z
     .string()
     .regex(SLUG_RE, { error: "Slug must be kebab-case." })
@@ -69,11 +69,11 @@ export const ArchitectIdeaSchema = z.object({
   suggested_notification_channels: z
     .array(z.enum(NOTIFICATION_CHANNELS))
     .min(1)
-    .max(4),
+    .max(8),
   suggested_pricing_tiers: z.array(SuggestedPricingTier).min(1).max(4),
   unit_economics: UnitEconomics,
-  tam_estimate: z.string().max(280).default(""),
-  reasoning: z.string().max(800).default(""),
+  tam_estimate: z.string().max(500).default(""),
+  reasoning: z.string().max(1500).default(""),
 });
 
 export const ArchitectResponseSchema = z.object({

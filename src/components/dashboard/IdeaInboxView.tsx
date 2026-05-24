@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   approveIdeaAction,
@@ -143,9 +144,14 @@ function FilterPill({ label, active, onClick }: { label: string; active: boolean
 }
 
 function GenerateIdeasForm() {
+  const router = useRouter();
   const [state, action, pending] = useActionState(generateIdeasAction, initialGenState);
   const failure = state && !state.ok ? state : null;
   const success = state && state.ok ? state : null;
+
+  useEffect(() => {
+    if (success) router.refresh();
+  }, [success, router]);
 
   return (
     <motion.section variants={fadeUp} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">

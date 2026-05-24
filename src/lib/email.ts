@@ -68,6 +68,27 @@ export async function sendWelcomeEmail(to: string, name: string) {
   });
 }
 
+export async function sendVerificationEmail(
+  to: string,
+  name: string,
+  verifyToken: string,
+) {
+  const verifyUrl = `${baseUrl()}/auth/verify?token=${verifyToken}`;
+  return sendEmail({
+    to,
+    subject: "Verify your email — ZECB",
+    html: layoutWrap(`
+      <h1 style="color:#1a1a2e;margin:0 0 16px">Verify your email</h1>
+      <p>Hi ${esc(name)},</p>
+      <p>Thanks for creating your ZECB operator account. Please verify your email address by clicking the button below. This link expires in 24 hours.</p>
+      ${buttonHtml(verifyUrl, "Verify Email")}
+      <p style="font-size:13px;color:#888;margin-top:24px">
+        If you didn't create this account, you can safely ignore this email.
+      </p>
+    `),
+  });
+}
+
 export async function sendPasswordResetEmail(
   to: string,
   name: string,
