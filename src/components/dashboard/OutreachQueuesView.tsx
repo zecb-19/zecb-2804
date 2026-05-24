@@ -101,9 +101,15 @@ export function OutreachQueuesView({ items, stats, products }: Props) {
             </div>
           </div>
 
-          {products.length > 1 && (
-            <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Product</label>
+          <div className="mb-4">
+            <label className="text-sm font-medium text-slate-700 mb-1.5 block">Product</label>
+            {products.length === 1 ? (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 w-full max-w-xs">
+                <span className="material-symbols-outlined text-emerald-600" style={{ fontSize: 16 }}>check_circle</span>
+                <span className="text-sm font-medium text-slate-900">{products[0].name}</span>
+                <span className="text-xs text-slate-400 font-mono">({products[0].slug})</span>
+              </div>
+            ) : (
               <select
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
@@ -113,8 +119,8 @@ export function OutreachQueuesView({ items, stats, products }: Props) {
                   <option key={p.id} value={p.id}>{p.name} ({p.slug})</option>
                 ))}
               </select>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <GenerateCard
@@ -306,9 +312,7 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
             <p className="text-xs text-slate-500 mt-1">{item.description}</p>
           )}
           {item.content_preview && (
-            <div className="mt-2 p-2 bg-slate-50 rounded text-sm text-slate-900 line-clamp-3">
-              {item.content_preview}
-            </div>
+            <ContentPreview raw={item.content_preview} />
           )}
         </div>
 
@@ -355,6 +359,81 @@ function QueueItemCard({ item }: { item: OutreachQueueItem }) {
         <p className="text-red-500 text-xs mt-1">{rejectState.message}</p>
       )}
     </motion.div>
+  );
+}
+
+/* --- Content Preview (formats JSON into readable UI) --------------------- */
+
+function ContentPreview({ raw }: { raw: string }) {
+  let parsed: Record<string, unknown> | null = null;
+  try {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      parsed = JSON.parse(trimmed);
+    }
+  } catch {
+    // not JSON — render as plain text
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return (
+      <div className="mt-2 p-3 bg-slate-50 rounded-xl text-sm text-slate-700 leading-relaxed">
+        {raw}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2">
+      {Object.entries(parsed).map(([key, value]) => {
+        if (value === null || value === undefined) return null;
+        const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        if (typeof value === "string") {
+          return (
+            <div key={key} className="p-3 bg-slate-50 rounded-xl">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{label}</div>
+              <div className="text-sm text-slate-900 leading-relaxed">{value}</div>
+            </div>
+          );
+        }
+        if (Array.isArray(value)) {
+          return (
+            <div key={key} className="p-3 bg-slate-50 rounded-xl">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{label}</div>
+              <ul className="space-y-1">
+                {value.map((item, i) => (
+                  <li key={i} className="text-sm text-slate-900 flex items-start gap-2">
+                    <span className="text-slate-400 flex-none">•</span>
+                    <span>{typeof item === "string" ? item : JSON.stringify(item)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }
+        if (typeof value === "object") {
+          return (
+            <div key={key} className="p-3 bg-slate-50 rounded-xl">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{label}</div>
+              <div className="space-y-1.5">
+                {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+                  <div key={k} className="flex items-start gap-2 text-sm">
+                    <span className="text-slate-500 font-medium min-w-[80px]">{k.replace(/_/g, " ")}:</span>
+                    <span className="text-slate-900">{typeof v === "string" ? v : String(v)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div key={key} className="p-3 bg-slate-50 rounded-xl">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{label}</div>
+            <div className="text-sm text-slate-900">{String(value)}</div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

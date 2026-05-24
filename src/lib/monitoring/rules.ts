@@ -1,5 +1,6 @@
 import "server-only";
 
+import { chat } from "@/lib/llm/openrouter";
 import type { NormalizedObservation } from "./datasource";
 
 export type ConditionType =
@@ -31,11 +32,11 @@ export type EvaluationResult = {
   details: Record<string, unknown>;
 };
 
-export function evaluateRule(
+export async function evaluateRule(
   config: RuleConfig,
   current: NormalizedObservation,
   previous: NormalizedObservation[],
-): EvaluationResult {
+): Promise<EvaluationResult> {
   switch (config.condition_type) {
     case "threshold":
       return evaluateThreshold(config, current);
@@ -52,7 +53,7 @@ export function evaluateRule(
     case "deadline_approaching":
       return evaluateDeadlineApproaching(config, current);
     case "semantic_match":
-      return { triggered: false, message: "Semantic match requires LLM — deferred", details: {} };
+      return evaluateSemanticMatch(config, current);
     default:
       return { triggered: false, message: `Unknown condition: ${config.condition_type}`, details: {} };
   }
@@ -264,4 +265,69 @@ function evaluateDeadlineApproaching(config: RuleConfig, current: NormalizedObse
         : `Deadline in ${daysRemaining} days (safe, threshold: ${daysBefore})`,
     details: { dateField, deadline: deadline.toISOString(), daysRemaining, daysBefore },
   };
+}
+
+async function evaluateSemanticMatch(
+  config: RuleConfig,
+  current: NormalizedObservation,
+): Promise<EvaluationResult> {
+  const val = String(getFieldValue(current, config.field) ?? "");
+  const target = String(config.value ?? "");
+
+  if (!val || !target) {
+    return { triggered: false, message: "Field or target value missing for semantic match", details: {} };
+  }
+
+  try {
+    const response = await chat(
+      [
+        {
+          role: "system",
+          content: `You are a semantic similarity judge. Compare the two texts and decide if Text A is meaningfully related to the concept described in Text B. Respond with ONLY a JSON object: {"match": true/false, "confidence": 0.0-1.0, "reason": "one sentence"}`,
+        },
+        {
+          role: "user",
+          content: `Text A (observed data):\n${val.slice(0, 1000)}\n\nText B (target concept):\n${target.slice(0, 500)}`,
+        },
+      ],
+      {
+        model: process.env.OPENROUTER_REPAIR_MODEL ?? "openai/gpt-4o-mini",
+        temperature: 0,
+        max_tokens: 200,
+      },
+    );
+
+    let parsed: { match?: boolean; confidence?: number; reason?: string } = {};
+    try {
+      const start = response.indexOf("{");
+      const end = response.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        parsed = JSON.parse(response.slice(start, end + 1));
+      }
+    } catch {
+      return { triggered: false, message: "LLM returned unparseable response", details: { raw: response.slice(0, 200) } };
+    }
+
+    const triggered = parsed.match === true && (parsed.confidence ?? 0) >= 0.7;
+
+    return {
+      triggered,
+      message: triggered
+        ? `Semantic match: "${target}" detected (${((parsed.confidence ?? 0) * 100).toFixed(0)}% confidence)`
+        : `No semantic match for "${target}" (${((parsed.confidence ?? 0) * 100).toFixed(0)}% confidence)`,
+      details: {
+        field: config.field,
+        target,
+        match: parsed.match ?? false,
+        confidence: parsed.confidence ?? 0,
+        reason: parsed.reason ?? "",
+      },
+    };
+  } catch (err) {
+    return {
+      triggered: false,
+      message: `Semantic match failed: ${err instanceof Error ? err.message : "unknown error"}`,
+      details: {},
+    };
+  }
 }

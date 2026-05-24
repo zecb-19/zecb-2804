@@ -78,10 +78,10 @@ Let's say you want to build a **"Price Monitor for Amazon Sellers"**:
 | **Idea Inbox** | AI-generated business ideas waiting for your review | A suggestion box from AI |
 | **BuildSpec** | The form where you describe exactly what to build | A blueprint for your product |
 | **Build Pipeline** | Watch the 11-step build process happen | A factory assembly line |
-| **Launch Approval** | Final human check before going live | Quality control gate |
-| **Portfolio** | All your live products in one place | Your product catalog |
+| **Portfolio** | All your products with URLs, metrics, and lifecycle tracking | Your product catalog |
 | **Outreach** | Marketing emails, ads, social media content | Your marketing department |
 | **Compliance Gates** | Legal checkboxes (GDPR, email rules) | Your legal department |
+| **Launches** | Final human check before going live | Quality control gate |
 | **Audit Trail** | Log of everything the AI did and how much it cost | Your accountant's records |
 | **Templates** | Pre-built product blueprints | Cookie cutters for products |
 | **Patterns** | Reusable building blocks (email digests, CSV import, etc.) | LEGO bricks |
@@ -115,7 +115,7 @@ npm install        # Install dependencies (first time only)
 npm run dev        # Start the development server
 ```
 
-Then open your browser and go to: **http://localhost:3000**
+Then open your browser and go to: **http://localhost:3002**
 
 ---
 
@@ -129,18 +129,29 @@ GOAL: Create an account and get into the dashboard
 
 | # | Action | Where | Expected Result |
 |---|--------|-------|-----------------|
-| 1 | Open http://localhost:3000 | Browser | See the landing page with "ZECB" branding |
-| 2 | Click "Sign Up" or "Get Started" | Landing page (top-right) | A signup modal/form appears |
+| 1 | Open http://localhost:3002 | Browser | See the landing page with "ZECB" branding |
+| 2 | Click "Sign Up" or "Get Started" | Landing page (top-right) | Split-panel signup page (branding left, form right) |
 | 3 | Fill in First Name | Signup form | Field accepts text |
 | 4 | Fill in Last Name | Signup form | Field accepts text |
-| 5 | Fill in Email (use a real-looking one) | Signup form | Field accepts email format |
+| 5 | Fill in Email (use a real email you can check) | Signup form | Field accepts email format |
 | 6 | Fill in Company name | Signup form | Field accepts text |
 | 7 | Select Country | Signup form | Dropdown with country options |
 | 8 | Enter Password (must have: 10+ chars, uppercase, lowercase, number, special char) | Signup form | e.g., `TestPass1!` |
 | 9 | Confirm Password (same as above) | Signup form | Must match |
 | 10 | Check "I accept Terms of Service" | Signup form | Checkbox required |
-| 11 | Click "Create Account" | Signup form | Redirects to /dashboard |
-| 12 | See the Dashboard | /dashboard | Welcome message with your first name, empty stats |
+| 11 | Click "Create Account" | Signup form | Shows "Check your email" screen (NOT a redirect to dashboard) |
+| 12 | Check your email (or console if `MOCK_PROVIDERS=true`) | Email inbox / terminal | Verification email with a link to `/auth/verify?token=...` |
+| 13 | Click the verification link | Email | Opens verification page, shows "Email verified!" with green checkmark |
+| 14 | Click "Sign in" on the verification page | /auth/verify | Redirects to login form |
+| 15 | Enter your email and password | Login form | Click "Sign in" |
+| 16 | See the Dashboard | /dashboard | Welcome message with your first name, empty stats |
+
+**Email Verification Cases to Test:**
+
+- [ ] After signup, try signing in WITHOUT verifying — should show "Please verify your email" with a "Resend verification email" button
+- [ ] Click "Resend verification email" — should show "Verification email sent!"
+- [ ] Click an expired or invalid verification link — should show "Verification failed" error
+- [ ] After verifying, sign in — should succeed and redirect to dashboard
 
 **Error Cases to Test:**
 
@@ -264,17 +275,18 @@ GOAL: Act as a customer of your newly launched product
 
 | # | Action | Where | Expected Result |
 |---|--------|-------|-----------------|
-| 1 | Open http://localhost:3000/product/price-tracker | Browser | See the product sign-in/sign-up page |
-| 2 | Click "Sign Up" tab | Product auth page | Sign-up form appears |
-| 3 | Enter Name, Email, Password (8+ chars) | Sign-up form | Fields accept input |
-| 4 | Click "Create Account" | Sign-up form | Redirects to /product/price-tracker/dashboard |
-| 5 | See the tenant dashboard | Tenant dashboard | KPI cards (empty at first), product name displayed |
-| 6 | Navigate to Data Sources | Tenant sidebar/nav | Data sources management page |
-| 7 | Add a new data source (e.g., HTTP API) | Data source form | Enter URL, polling frequency |
-| 8 | Navigate to Alert Rules | Tenant sidebar/nav | Alert rules page |
-| 9 | Create a new alert rule | Alert rule form | Pick type (Threshold), set condition, pick channel |
-| 10 | Check Observations | Observations page | Data points collected from your sources |
-| 11 | Check Alerts | Alerts page | Any triggered alerts show here |
+| 1 | Open http://localhost:3002/product/price-tracker | Browser | Split-panel auth page (product branding left, form right on desktop; compact header on mobile) |
+| 2 | Click "Sign Up" tab | Product auth page | Sign-up form slides in with animation |
+| 3 | Enter Name, Email, Password (8+ chars) | Sign-up form | Fields accept input, icons turn blue on focus |
+| 4 | Click "Create Account" | Sign-up form | Redirects to onboarding wizard |
+| 5 | Complete onboarding steps | /product/price-tracker/onboarding | Set up first data source, configure basics |
+| 6 | See the tenant dashboard | /product/price-tracker/dashboard | KPI cards (empty at first), product name displayed |
+| 7 | Navigate to Data Sources | Tenant sidebar | Data sources management page |
+| 8 | Add a new data source (e.g., HTTP API) | Data source form | Enter URL, polling frequency |
+| 9 | Navigate to Alert Rules | Tenant sidebar | Alert rules page |
+| 10 | Create a new alert rule | Alert rule form | Pick type (Threshold), set condition, pick channel |
+| 11 | Check Timeline | Timeline page | Data points collected from your sources |
+| 12 | Check Alerts | Alerts page | Any triggered alerts show here |
 
 **What to Check:**
 
@@ -282,6 +294,9 @@ GOAL: Act as a customer of your newly launched product
 - [ ] Tenant can only see their own product, not others
 - [ ] Free tier tenants should have limits (fewer data sources, slower check frequency)
 - [ ] Password requirement is simpler (8+ chars, no complexity rules)
+- [ ] Tab switching between Sign In / Sign Up uses smooth spring animation
+- [ ] Form fields stagger in with fade-up animation
+- [ ] New tenants are routed through onboarding before reaching the dashboard
 
 ---
 
@@ -296,7 +311,7 @@ GOAL: Verify legal compliance checks are tracked
 | # | Action | Where | Expected Result |
 |---|--------|-------|-----------------|
 | 1 | Click "Compliance Gates" in sidebar | Sidebar | Opens /dashboard/compliance |
-| 2 | See the compliance categories | Compliance page | DSGVO (18 checks), Email (6), Content (1), Audit (2) |
+| 2 | See the compliance categories | Compliance page | DSGVO (8), Email (4), Cold Email (7), Content (1), Audit (2) |
 | 3 | Review each check | Compliance page | Status: not_started / in_progress / complete |
 | 4 | Mark a check as complete | Compliance page | Status updates, timestamp recorded |
 | 5 | Visit /legal/impressum | Browser | Auto-generated Impressum page |
@@ -305,7 +320,7 @@ GOAL: Verify legal compliance checks are tracked
 
 **What to Check:**
 
-- [ ] All 27 compliance checks should be visible
+- [ ] All 22 compliance checks should be visible
 - [ ] Legal pages should render without errors
 - [ ] Marking a check complete should be logged in the audit trail
 
@@ -408,7 +423,7 @@ GOAL: Verify the forgot-password flow works
 Open your web browser (Chrome, Firefox, Edge — any will work) and go to:
 
 ```
-http://localhost:3000
+http://localhost:3002
 ```
 
 You'll see a landing page explaining what ZECB does.
@@ -431,6 +446,8 @@ You'll see a landing page explaining what ZECB does.
    - **Confirm Password**: Type the same password again
 3. Check the box that says **"I accept the Terms of Service"**
 4. Click **"Create Account"**
+
+You'll see a **"Check your email"** screen. Open your email (or check the terminal if `MOCK_PROVIDERS=true`) and click the verification link. After verification, sign in with your credentials.
 
 You're in! You'll see your **Dashboard**.
 
@@ -527,30 +544,33 @@ At **Step 11**, the system STOPS and waits for you.
 Open a **new browser tab** (or an incognito/private window) and go to:
 
 ```
-http://localhost:3000/product/your-product-slug
+http://localhost:3002/product/your-product-slug
 ```
 
 Replace `your-product-slug` with whatever slug you chose (e.g., `price-tracker`).
 
-1. Click **"Sign Up"** tab
+1. Click **"Sign Up"** tab (smooth spring animation slides the tab indicator)
 2. Enter a Name, Email, and Password (8+ characters is enough)
 3. Click **"Create Account"**
-4. You're now in the **customer dashboard** of YOUR product!
+4. Complete the **onboarding wizard** (set up your first data source)
+5. You're now in the **customer dashboard** of YOUR product!
 
 From here, a customer can:
 - Add data sources to monitor
 - Create alert rules
-- View observations (collected data points)
+- View the timeline (collected data points)
 - See triggered alerts
+- Configure notification channels (Email, Slack, Telegram, etc.)
 
 #### Step 10: Check Your Numbers
 
 Back in your **operator dashboard** (the main one):
 
 1. **Dashboard** → See your live product count and monthly costs
-2. **Audit Trail** → See every AI action and its cost
-3. **Compliance Gates** → Make sure all legal checkboxes are done
-4. **Outreach Queues** → Generate marketing content for your product
+2. **Portfolio** → See all products with clickable links to Tenant App and Marketing Page
+3. **Audit Trail** → See every AI action and its cost
+4. **Compliance Gates** → Make sure all legal checkboxes are done
+5. **Outreach Queues** → Generate marketing content for your product
 
 ---
 
@@ -568,21 +588,28 @@ Back in your **operator dashboard** (the main one):
 | URL | What It Is |
 |-----|-----------|
 | `/` | Landing page (public) |
+| `/auth/login` | Operator sign-in (split-panel layout) |
+| `/auth/signup` | Operator sign-up (split-panel layout) |
+| `/auth/verify?token=...` | Email verification page |
+| `/reset-password` | Password reset page |
 | `/dashboard` | Your operator control panel |
 | `/dashboard/inbox` | AI idea generator |
 | `/dashboard/buildspec` | Product configuration form |
 | `/dashboard/pipeline` | Build progress tracker |
 | `/dashboard/launches` | Launch approval queue |
+| `/dashboard/portfolio` | All your products with URLs, metrics, lifecycle |
 | `/dashboard/outreach` | Marketing tools |
 | `/dashboard/compliance` | Legal compliance checklist |
 | `/dashboard/audit` | Cost & activity log |
 | `/dashboard/settings` | Account settings |
+| `/p/[slug]` | Marketing landing page for a product (public) |
+| `/p/[slug]/blog` | Product blog (public) |
 | `/product/[slug]` | Customer login for a specific product |
 | `/product/[slug]/dashboard` | Customer dashboard |
+| `/product/[slug]/onboarding` | New customer onboarding wizard |
 | `/legal/impressum` | Legal: Impressum |
 | `/legal/datenschutz` | Legal: Privacy Policy |
 | `/legal/agb` | Legal: Terms of Service |
-| `/reset-password` | Password reset page |
 
 ---
 
@@ -596,6 +623,7 @@ Back in your **operator dashboard** (the main one):
 | Ideas not generating | Check if `OPENROUTER_KEY` is set (or `MOCK_PROVIDERS=true` for testing) |
 | Emails not sending | Check SMTP settings or set `MOCK_PROVIDERS=true` (emails logged to console instead) |
 | Page shows blank | Check the browser console (F12 → Console tab) for errors |
+| "Please verify your email" on login | You haven't clicked the verification link yet — check your email or console logs |
 | "Unauthorized" error | Your session expired — sign in again |
 
 ---
@@ -619,4 +647,6 @@ Back in your **operator dashboard** (the main one):
 | **Observation** | A single data point collected from a data source |
 | **Pattern** | A reusable building block (like "Email Digest" or "CSV Import") |
 | **Template** | A complete product blueprint (like "Monitoring-SaaS") |
+| **Email Verification** | A step where new operators must click a link in their email to activate their account |
+| **Marketing Page** | The public-facing landing page for a product at `/p/[slug]` |
 | **Compliance Gate** | A legal checkbox that must be completed before launch |

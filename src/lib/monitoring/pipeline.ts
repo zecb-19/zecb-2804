@@ -172,7 +172,7 @@ async function evaluateRulesForSource(
         ...JSON.parse(rule.condition_config),
       };
 
-      const result = evaluateRule(config, obs, previous);
+      const result = await evaluateRule(config, obs, previous);
 
       if (result.triggered) {
         triggered++;

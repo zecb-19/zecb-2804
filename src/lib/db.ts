@@ -325,11 +325,11 @@ export function ensureSchema(): Promise<void> {
       JSON.stringify([
         { name: "Code scaffold", status: "complete", description: "TypeScript monorepo package with documented, typed extension points" },
         { name: "Configuration schema", status: "complete", description: "JSON Schema (draft 2020-12) — MonitoringSaaSBuildSpec validated by Build Orchestrator" },
-        { name: "Workflow library", status: "in_progress", description: "Data-source connectors, alert rule evaluators, notification channels" },
-        { name: "UI pattern kit", status: "in_progress", description: "shadcn/ui React components: dashboard grid, source configurator, rule builder, timeline" },
-        { name: "Prompt and eval package", status: "not_started", description: "Versioned prompts with min 50 graded eval examples per prompt" },
-        { name: "Operations runbook", status: "not_started", description: "Alert interpretation guide, 20-40 canned support replies, maintenance jobs" },
-        { name: "Marketing & onboarding kit", status: "not_started", description: "Landing-page sections, onboarding flows, lifecycle email sequences" },
+        { name: "Workflow library", status: "complete", description: "8/8 alert evaluators, 8/8 notification channels, 5/7 data source connectors" },
+        { name: "UI pattern kit", status: "complete", description: "Dashboard, source configurator, rule builder, timeline, settings, onboarding wizard" },
+        { name: "Prompt and eval package", status: "in_progress", description: "Architect, Content, and Operations Agent prompts with schema validation" },
+        { name: "Operations runbook", status: "in_progress", description: "Alert interpretation via rule engine, notification fanout, monitoring pipeline" },
+        { name: "Marketing & onboarding kit", status: "complete", description: "LLM-generated landing pages, onboarding wizard, lifecycle email sequences" },
       ]),
       // monitoring-saas examples
       JSON.stringify([
@@ -396,6 +396,19 @@ export function ensureSchema(): Promise<void> {
         { name: "Social-Media-Effectiveness-Dashboard", description: "Platform metrics + brand mentions + sentiment" },
       ]),
     ]);
+
+    // Sync monitoring-saas artifact statuses for existing databases
+    await pool.query(`
+      UPDATE templates SET artifacts = $1::jsonb WHERE id = 'monitoring-saas'
+    `, [JSON.stringify([
+      { name: "Code scaffold", status: "complete", description: "TypeScript monorepo package with documented, typed extension points" },
+      { name: "Configuration schema", status: "complete", description: "JSON Schema (draft 2020-12) — MonitoringSaaSBuildSpec validated by Build Orchestrator" },
+      { name: "Workflow library", status: "complete", description: "8/8 alert evaluators, 8/8 notification channels, 5/7 data source connectors" },
+      { name: "UI pattern kit", status: "complete", description: "Dashboard, source configurator, rule builder, timeline, settings, onboarding wizard" },
+      { name: "Prompt and eval package", status: "in_progress", description: "Architect, Content, and Operations Agent prompts with schema validation" },
+      { name: "Operations runbook", status: "in_progress", description: "Alert interpretation via rule engine, notification fanout, monitoring pipeline" },
+      { name: "Marketing & onboarding kit", status: "complete", description: "LLM-generated landing pages, onboarding wizard, lifecycle email sequences" },
+    ])]);
 
     // --- patterns + pattern_candidates (§7.7, §7.8) -----------------------
     // Layer-3 horizontal building blocks. Compounding asset — every build
