@@ -8,7 +8,10 @@ const TITLES: Record<string, string> = {
   rules: "Alert Rules",
   timeline: "Timeline",
   alerts: "Alerts",
+  notifications: "Channels",
+  reports: "Reports",
   settings: "Settings",
+  onboarding: "Get Started",
 };
 
 type Props = {

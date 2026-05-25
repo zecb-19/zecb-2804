@@ -25,13 +25,17 @@ export default async function ProductLayout({
 
   await ensureSchema();
 
-  const [productRow, healthRows] = await Promise.all([
+  const [productRow, healthRows, alertCountRow] = await Promise.all([
     pool.query<{ name: string }>(
       "SELECT name FROM products WHERE id = $1::uuid",
       [session.productId],
     ),
     pool.query<{ name: string; last_fetch_status: string | null }>(
       "SELECT name, last_fetch_status FROM data_sources WHERE product_id = $1::uuid AND enabled = TRUE ORDER BY name",
+      [session.productId],
+    ),
+    pool.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM alerts WHERE product_id = $1::uuid AND status IN ('pending', 'sent')",
       [session.productId],
     ),
   ]);
@@ -41,6 +45,7 @@ export default async function ProductLayout({
   const healthySources = sourceHealth.filter((s) => s.status === "ok").length;
   const totalSources = sourceHealth.length;
   const healthStatus = totalSources === 0 ? "unknown" as const : healthySources === totalSources ? "healthy" as const : "degraded" as const;
+  const alertCount = parseInt(alertCountRow.rows[0]?.count ?? "0", 10);
 
   return (
     <ThemeProvider>
@@ -50,6 +55,7 @@ export default async function ProductLayout({
         productName={productName}
         session={{ name: session.name, email: session.email }}
         sourceHealth={sourceHealth}
+        alertCount={alertCount}
       />
       <div className="flex-1 min-w-0 flex flex-col">
         <TenantTopbar slug={slug} healthStatus={healthStatus} sourcesCount={totalSources} />

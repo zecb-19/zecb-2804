@@ -29,9 +29,10 @@ type Props = {
   productName: string;
   session: { name: string; email: string };
   sourceHealth?: Array<{ name: string; status: string | null }>;
+  alertCount?: number;
 };
 
-export function TenantSidebar({ slug, productName, session, sourceHealth = [] }: Props) {
+export function TenantSidebar({ slug, productName, session, sourceHealth = [], alertCount = 0 }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, startSignout] = useTransition();
@@ -105,9 +106,9 @@ export function TenantSidebar({ slug, productName, session, sourceHealth = [] }:
                 )}
                 <span className={`material-symbols-outlined relative z-10 flex-none ${active ? "text-blue-400" : ""}`} style={{ fontSize: 18 }}>{item.icon}</span>
                 <span className="relative z-10">{item.label}</span>
-                {item.key === "alerts" && (
-                  <span className="relative z-10 ml-auto w-5 h-5 rounded-full bg-white/[0.06] text-slate-500 text-[10px] font-bold flex items-center justify-center">
-                    0
+                {item.key === "alerts" && alertCount > 0 && (
+                  <span className="relative z-10 ml-auto min-w-5 h-5 px-1.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold flex items-center justify-center">
+                    {alertCount > 99 ? "99+" : alertCount}
                   </span>
                 )}
               </Link>
