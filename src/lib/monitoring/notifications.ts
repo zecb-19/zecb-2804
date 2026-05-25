@@ -69,6 +69,15 @@ export async function dispatchNotifications(payload: AlertPayload): Promise<void
   }
 }
 
+async function isGloballyUnsubscribed(email: string): Promise<boolean> {
+  const hash = require("crypto").createHash("sha256").update(email.toLowerCase()).digest("hex");
+  const { rows } = await pool.query(
+    "SELECT 1 FROM unsubscribes WHERE email_hash = $1 LIMIT 1",
+    [hash],
+  );
+  return rows.length > 0;
+}
+
 async function dispatchEmail(payload: AlertPayload): Promise<void> {
   const { rows } = await pool.query<{ email: string; name: string }>(
     `SELECT u.email, u.name
@@ -80,6 +89,14 @@ async function dispatchEmail(payload: AlertPayload): Promise<void> {
   );
   const user = rows[0];
   if (!user) return;
+
+  if (await isGloballyUnsubscribed(user.email)) {
+    log.info({ email: user.email, alertId: payload.alertId }, "Skipping email — globally unsubscribed");
+    return;
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
+  const unsubUrl = `${baseUrl}/product/${payload.productSlug}/settings`;
 
   await sendEmail({
     to: user.email,
@@ -98,7 +115,11 @@ async function dispatchEmail(payload: AlertPayload): Promise<void> {
       Product: <strong>${escHtml(payload.productSlug)}</strong>
     </p>
     <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-    <p style="font-size:12px;color:#999">ZECB Monitoring Alert · Automated notification</p>
+    <p style="font-size:12px;color:#999">
+      ZECB Monitoring Alert · Automated notification<br>
+      <a href="${unsubUrl}" style="color:#666;text-decoration:underline">Manage email preferences</a>
+      · <a href="${unsubUrl}" style="color:#666;text-decoration:underline">Unsubscribe</a>
+    </p>
   </div>
 </body>
 </html>`,

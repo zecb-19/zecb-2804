@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ensureSchema } from "@/lib/db";
 import { getMarketingProduct } from "@/lib/marketing/queries";
+import { SubscribeForm } from "./subscribe-form";
 
 export default async function MarketingLandingPage({
   params,
@@ -243,6 +245,12 @@ export default async function MarketingLandingPage({
                 Kostenlos starten
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
               </Link>
+              <div className="mt-10 pt-8 border-t border-white/10">
+                <p className="text-sm text-slate-400 mb-4">Oder erhalten Sie Updates per E-Mail:</p>
+                <Suspense fallback={null}>
+                  <SubscribeForm productId={p.id} productSlug={p.slug} />
+                </Suspense>
+              </div>
             </div>
           </div>
         </div>

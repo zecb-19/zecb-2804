@@ -1077,6 +1077,7 @@ export function ensureSchema(): Promise<void> {
     await pool.query(`
       UPDATE compliance_checks SET status = 'complete', checked_at = NOW()
       WHERE status != 'complete' AND id IN (
+        'dsgvo-tcf22',
         'dsgvo-impressum',
         'dsgvo-datenschutz',
         'dsgvo-agb',
@@ -1085,16 +1086,15 @@ export function ensureSchema(): Promise<void> {
         'dsgvo-portability',
         'dsgvo-consent-ledger',
         'content-forbidden-claims',
-        'email-unsub-holding'
+        'email-unsub-holding',
+        'email-double-optin',
+        'email-preference-center'
       );
     `);
     await pool.query(`
       UPDATE compliance_checks SET status = 'in_progress', checked_at = NOW()
       WHERE status = 'not_started' AND id IN (
-        'dsgvo-tcf22',
-        'email-dkim-spf',
-        'email-double-optin',
-        'email-preference-center'
+        'email-dkim-spf'
       );
     `);
 
