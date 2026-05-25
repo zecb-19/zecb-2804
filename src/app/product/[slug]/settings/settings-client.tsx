@@ -18,12 +18,20 @@ import {
 
 type PricingTier = { name: string; price_eur_monthly: number; limits: Record<string, number> };
 
+type EmailPrefs = {
+  product_updates: boolean;
+  monitoring_alerts: boolean;
+  marketing: boolean;
+  lifecycle: boolean;
+};
+
 type Props = {
   slug: string;
   email: string;
   name: string;
   plan: string;
   channels: string[];
+  emailPreferences: EmailPrefs;
   createdAt: string;
   pricingTiers: PricingTier[];
 };
@@ -53,11 +61,28 @@ async function saveChannelsAction(_prev: SaveState, formData: FormData): Promise
   return { ok: true };
 }
 
-export function SettingsClient({ slug, email, name, plan, channels, createdAt, pricingTiers }: Props) {
+async function saveEmailPrefsAction(_prev: SaveState, formData: FormData): Promise<SaveState> {
+  const prefs = {
+    product_updates: formData.get("product_updates") === "on",
+    monitoring_alerts: formData.get("monitoring_alerts") === "on",
+    marketing: formData.get("marketing") === "on",
+    lifecycle: formData.get("lifecycle") === "on",
+  };
+  const res = await fetch("/api/tenant/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email_preferences: prefs }),
+  });
+  if (!res.ok) return { ok: false, message: "Failed to save." };
+  return { ok: true };
+}
+
+export function SettingsClient({ slug, email, name, plan, channels, emailPreferences, createdAt, pricingTiers }: Props) {
   const [state, action, pending] = useActionState(saveChannelsAction, undefined as SaveState);
   const [upgradeState, upgradeAction, upgradePending] = useActionState(upgradePlanAction, undefined as AccountActionState);
   const [exportState, exportAction, exportPending] = useActionState(exportAllDataAction, undefined as AccountActionState);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteAccountAction, undefined as AccountActionState);
+  const [emailPrefState, emailPrefAction, emailPrefPending] = useActionState(saveEmailPrefsAction, undefined as SaveState);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [dsgvoExportState, dsgvoExportAction, dsgvoExportPending] = useActionState(requestDataExportAction, undefined as DsgvoActionState);
   const [dsgvoPortState, dsgvoPortAction, dsgvoPortPending] = useActionState(requestDataPortabilityAction, undefined as DsgvoActionState);
@@ -267,6 +292,64 @@ export function SettingsClient({ slug, email, name, plan, channels, createdAt, p
               )}
             </AnimatePresence>
             {state && !state.ok && <span className="text-red-500 text-xs">{state.message}</span>}
+          </div>
+        </form>
+      </motion.div>
+
+      {/* Email Preference Center (DSGVO Art. 21) */}
+      <motion.div variants={fadeUp}>
+        <form action={emailPrefAction} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>mail</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-900">Email Preferences</h2>
+                <p className="text-sm text-slate-500">Control which emails you receive. Uncheck all to stop non-transactional emails.</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-2">
+            {([
+              { key: "monitoring_alerts" as const, icon: "notifications_active", label: "Monitoring Alerts", desc: "Alert notifications from your data sources and rules", color: "from-red-500 to-rose-600" },
+              { key: "product_updates" as const, icon: "update", label: "Product Updates", desc: "New features, improvements, and platform news", color: "from-blue-500 to-indigo-600" },
+              { key: "lifecycle" as const, icon: "timeline", label: "Tips & Onboarding", desc: "Getting started guides, tips, and best practices", color: "from-violet-500 to-purple-600" },
+              { key: "marketing" as const, icon: "campaign", label: "Marketing & Promotions", desc: "Special offers, case studies, and partner content", color: "from-amber-500 to-orange-600" },
+            ]).map((pref) => (
+              <label key={pref.key} className={`flex items-center justify-between px-4 py-4 rounded-xl border-2 cursor-pointer transition-all group ${
+                emailPreferences[pref.key] ? "border-emerald-200 bg-emerald-50/30" : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
+              }`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${pref.color} flex items-center justify-center shadow-sm`}>
+                    <span className="material-symbols-outlined text-white" style={{ fontSize: 20 }}>{pref.icon}</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">{pref.label}</div>
+                    <div className="text-xs text-slate-500">{pref.desc}</div>
+                  </div>
+                </div>
+                <div className="relative">
+                  <input type="checkbox" name={pref.key} defaultChecked={emailPreferences[pref.key]} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-emerald-500 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform" />
+                </div>
+              </label>
+            ))}
+          </div>
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={emailPrefPending}
+              className="px-6 py-3 rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 text-white font-semibold text-sm shadow-lg shadow-slate-900/20 hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 transition-all inline-flex items-center gap-2">
+              {emailPrefPending ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+                : <><span className="material-symbols-outlined" style={{ fontSize: 18 }}>check</span>Save preferences</>}
+            </motion.button>
+            <AnimatePresence>
+              {emailPrefState?.ok && (
+                <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="text-emerald-600 text-sm flex items-center gap-1.5 font-medium">
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check_circle</span>Saved!
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
         </form>
       </motion.div>

@@ -118,6 +118,63 @@ Return a JSON object with these exact keys:
   );
   const nextVersion = Number(versionRows[0]?.max_version ?? 0) + 1;
 
+  const BANNED_PHRASES = [
+    "100% accuracy", "100 % accuracy",
+    "gdpr certified", "dsgvo zertifiziert",
+    "guaranteed results", "garantierte ergebnisse",
+    "risk-free", "risikofrei",
+    "delve", "navigate the complexities", "in today's fast-paced world",
+    "leverage", "synergy", "paradigm shift",
+    "ai-powered" ,
+  ];
+
+  function containsBannedPhrase(text: string): string | null {
+    const lower = text.toLowerCase();
+    for (const phrase of BANNED_PHRASES) {
+      if (lower.includes(phrase)) return phrase;
+    }
+    return null;
+  }
+
+  const textFields = [
+    parsed.pain_statements && typeof parsed.pain_statements === "object"
+      ? Object.values(parsed.pain_statements as Record<string, string>).join(" ")
+      : "",
+    parsed.core_promise && typeof parsed.core_promise === "object"
+      ? Object.values(parsed.core_promise as Record<string, string>).join(" ")
+      : "",
+    ...(Array.isArray(parsed.proof_elements)
+      ? (parsed.proof_elements as Array<{ content?: string }>).map((p) => p.content ?? "")
+      : []),
+    ...(Array.isArray(parsed.calls_to_action)
+      ? (parsed.calls_to_action as Array<{ text?: string }>).map((c) => c.text ?? "")
+      : []),
+  ];
+
+  const violations: string[] = [];
+  for (const text of textFields) {
+    const found = containsBannedPhrase(text);
+    if (found) violations.push(found);
+  }
+
+  if (violations.length > 0) {
+    log.warn({ productId, violations }, "Core Message contains forbidden claims — requesting LLM fix");
+    const fixResult = await chatWithUsage(
+      [
+        { role: "system", content: "You are a compliance editor. Remove or rephrase any forbidden claims from this marketing content. Return the corrected JSON object with the same structure." },
+        { role: "user", content: `Forbidden phrases found: ${violations.join(", ")}\n\nOriginal content:\n${result.content}\n\nReturn the corrected JSON object only.` },
+      ],
+      { temperature: 0, response_format: { type: "json_object" } },
+    );
+    try {
+      const fixed = fixResult.content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const fixedParsed = JSON.parse(fixed);
+      Object.assign(parsed, fixedParsed);
+    } catch {
+      log.error({ productId }, "Failed to parse forbidden-claims fix response");
+    }
+  }
+
   const payload: CoreMessagePayload = {
     product_id: productId,
     version: nextVersion,

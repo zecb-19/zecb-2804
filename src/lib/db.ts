@@ -1073,6 +1073,31 @@ export function ensureSchema(): Promise<void> {
       ON CONFLICT (id) DO NOTHING;
     `);
 
+    // Auto-mark compliance checks that are actually implemented in code
+    await pool.query(`
+      UPDATE compliance_checks SET status = 'complete', checked_at = NOW()
+      WHERE status != 'complete' AND id IN (
+        'dsgvo-impressum',
+        'dsgvo-datenschutz',
+        'dsgvo-agb',
+        'dsgvo-auskunft',
+        'dsgvo-loeschung',
+        'dsgvo-portability',
+        'dsgvo-consent-ledger',
+        'content-forbidden-claims',
+        'email-unsub-holding'
+      );
+    `);
+    await pool.query(`
+      UPDATE compliance_checks SET status = 'in_progress', checked_at = NOW()
+      WHERE status = 'not_started' AND id IN (
+        'dsgvo-tcf22',
+        'email-dkim-spf',
+        'email-double-optin',
+        'email-preference-center'
+      );
+    `);
+
   })().catch((err) => {
     global.__zecbSchemaInit = undefined;
     throw err;

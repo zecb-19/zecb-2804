@@ -19,11 +19,13 @@ export default async function TenantSettings({
     pool.query<{
       plan: string;
       notify_channels: string;
+      email_preferences: string;
       email: string;
       name: string;
       created_at: string;
     }>(
-      `SELECT plan, notify_channels::text AS notify_channels, email, name,
+      `SELECT plan, notify_channels::text AS notify_channels,
+              email_preferences::text AS email_preferences, email, name,
               created_at::text AS created_at
          FROM tenants WHERE id = $1::uuid`,
       [session.tenantId],
@@ -40,6 +42,9 @@ export default async function TenantSettings({
   let channels: string[] = [];
   try { channels = JSON.parse(tenant.notify_channels); } catch { /* */ }
 
+  let emailPreferences = { product_updates: true, monitoring_alerts: true, marketing: true, lifecycle: true };
+  try { emailPreferences = JSON.parse(tenant.email_preferences ?? "{}"); } catch { /* */ }
+
   let tiers: Array<{ name: string; price_eur_monthly: number; limits: Record<string, number> }> = [];
   try { tiers = JSON.parse(productResult.rows[0]?.pricing_tiers ?? "[]"); } catch { /* */ }
 
@@ -50,6 +55,7 @@ export default async function TenantSettings({
       name={tenant.name}
       plan={tenant.plan}
       channels={channels}
+      emailPreferences={emailPreferences}
       createdAt={tenant.created_at}
       pricingTiers={tiers}
     />
